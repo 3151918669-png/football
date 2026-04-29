@@ -1,21 +1,23 @@
 :root {
-  --bg: #0f1119;
-  --panel: #161822;
-  --panel2: #1e2135;
-  --border: #252836;
-  --text: #e0e0e0;
-  --sub: #9094a6;
-  --accent: #f0a830;
-  --accent2: #e84855;
-  --green: #2ecc71;
-  --blue: #3498db;
-  --win: #27ae60;
-  --draw: #f39c12;
-  --loss: #e74c3c;
-  --card-bg: linear-gradient(145deg, #1a1d2e 0%, #1e2135 50%, #1a1d2e 100%);
+  --bg: #07111f;
+  --bg2: #0b1830;
+  --panel: #101c2f;
+  --panel2: #172943;
+  --panel3: #203957;
+  --border: #28405f;
+  --text: #e7eef8;
+  --sub: #8ea6c4;
+  --accent: #00e0b8;
+  --accent2: #ff4f6d;
+  --gold: #d7b56d;
+  --blue: #4aa3ff;
+  --win: #22c55e;
+  --draw: #eab308;
+  --loss: #ef4444;
+  --card-bg: linear-gradient(145deg, #10233b 0%, #172943 48%, #0d1a2d 100%);
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow: 0 10px 34px rgba(0, 0, 0, 0.36);
   --transition: 0.2s ease;
   --font-mono: "SF Mono", "Cascadia Code", "Consolas", monospace;
 }
@@ -27,7 +29,9 @@
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(0, 224, 184, 0.12), transparent 34%),
+    linear-gradient(135deg, var(--bg) 0%, #0a1024 48%, #050b16 100%);
   color: var(--text);
   font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
   line-height: 1.6;
@@ -54,8 +58,8 @@ textarea {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, #0a1730 0%, #07111f 100%);
+  border-right: 1px solid rgba(74, 163, 255, 0.18);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -63,24 +67,24 @@ textarea {
 }
 
 .club-badge {
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   margin: 0 auto 18px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #0f1119;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent), #1d79ff);
+  color: #06111f;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
-  font-weight: 900;
+  font-size: 1.35rem;
+  font-weight: 950;
   letter-spacing: 1px;
-  box-shadow: 0 0 24px rgba(240, 168, 48, 0.35);
+  box-shadow: 0 0 26px rgba(0, 224, 184, 0.32);
 }
 
 .nav-item {
   width: 100%;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--sub);
   cursor: pointer;
@@ -88,19 +92,21 @@ textarea {
   border-radius: var(--radius-sm);
   text-align: left;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   transition: var(--transition);
 }
 
 .nav-item:hover {
-  background: var(--panel2);
-  color: #d0d0d0;
+  background: rgba(23, 41, 67, 0.86);
+  color: #eaf6ff;
+  border-color: rgba(0, 224, 184, 0.2);
 }
 
 .nav-item.active {
-  background: var(--panel2);
+  background: linear-gradient(135deg, rgba(0, 224, 184, 0.16), rgba(74, 163, 255, 0.14));
   color: var(--accent);
-  box-shadow: inset 3px 0 0 var(--accent);
+  border-color: rgba(0, 224, 184, 0.35);
+  box-shadow: inset 4px 0 0 var(--accent);
 }
 
 .fm-main {
@@ -112,8 +118,9 @@ textarea {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: rgba(16, 28, 47, 0.96);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(74, 163, 255, 0.18);
   padding: 20px 28px;
   display: flex;
   justify-content: space-between;
@@ -124,19 +131,26 @@ textarea {
 
 .fm-topbar h1 {
   font-size: 1.4rem;
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: -0.3px;
-  background: linear-gradient(135deg, var(--accent), #f7c978);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #fff;
   margin: 0;
+}
+
+.fm-topbar h1::after {
+  content: "";
+  display: block;
+  width: 86px;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), transparent);
 }
 
 .fm-topbar p {
   color: var(--sub);
   font-size: 0.8rem;
-  margin-top: 3px;
+  margin-top: 5px;
 }
 
 .top-actions {
@@ -147,12 +161,13 @@ textarea {
 
 .top-actions span {
   display: inline-block;
-  padding: 5px 12px;
+  padding: 6px 13px;
   border-radius: 999px;
-  background: var(--panel2);
-  color: var(--sub);
+  background: rgba(0, 224, 184, 0.1);
+  border: 1px solid rgba(0, 224, 184, 0.22);
+  color: var(--accent);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 /* ===== 通用面板 ===== */
@@ -164,8 +179,8 @@ textarea {
 }
 
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: linear-gradient(145deg, rgba(16, 28, 47, 0.98), rgba(10, 23, 48, 0.96));
+  border: 1px solid rgba(74, 163, 255, 0.16);
   border-radius: var(--radius);
   padding: 18px 20px;
   box-shadow: var(--shadow);
@@ -178,20 +193,20 @@ textarea {
 .panel h2 {
   color: #fff;
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 900;
   margin-bottom: 12px;
 }
 
 .panel h3 {
-  color: #ccc;
+  color: #dbeafe;
   font-size: 0.88rem;
-  font-weight: 800;
+  font-weight: 850;
   margin-bottom: 9px;
 }
 
 .panel p,
 .panel li {
-  color: #cbd5e1;
+  color: #c7d7eb;
 }
 
 ul {
@@ -210,6 +225,7 @@ li {
   justify-content: center;
   gap: 6px;
   text-align: center;
+  border-top: 3px solid rgba(0, 224, 184, 0.55);
 }
 
 .info-card span {
@@ -223,7 +239,7 @@ li {
   color: #fff;
   font-family: var(--font-mono);
   font-size: 2rem;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .info-card.result-win strong {
@@ -246,8 +262,8 @@ li {
 }
 
 .player-list {
-  background: var(--panel);
-  border-right: 1px solid var(--border);
+  background: rgba(10, 23, 48, 0.9);
+  border-right: 1px solid rgba(74, 163, 255, 0.16);
   padding: 12px 8px;
   overflow-y: auto;
   max-height: calc(100vh - 90px);
@@ -265,34 +281,35 @@ li {
 
 .player-row {
   width: 100%;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text);
   cursor: pointer;
   padding: 9px 10px;
-  border-radius: 7px;
+  border-radius: 8px;
   text-align: left;
   transition: var(--transition);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 8px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 
 .player-row:hover {
-  background: var(--panel2);
+  background: rgba(23, 41, 67, 0.88);
+  border-color: rgba(74, 163, 255, 0.18);
 }
 
 .player-row.active {
-  background: var(--panel2);
-  border-left: 3px solid var(--accent);
+  background: linear-gradient(135deg, rgba(0, 224, 184, 0.14), rgba(74, 163, 255, 0.12));
+  border-left: 4px solid var(--accent);
 }
 
 .player-row span {
   color: var(--accent);
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .player-row strong {
@@ -326,8 +343,8 @@ li {
 }
 
 .player-hero {
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(16, 28, 47, 0.98), rgba(12, 42, 66, 0.92));
+  border: 1px solid rgba(0, 224, 184, 0.18);
   border-radius: var(--radius);
   padding: 18px 20px;
   box-shadow: var(--shadow);
@@ -341,7 +358,7 @@ li {
 .player-hero h2 {
   color: #fff;
   font-size: 1.6rem;
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: -0.4px;
   margin: 0;
 }
@@ -360,12 +377,13 @@ li {
 }
 
 .tag-row span {
-  background: var(--panel2);
+  background: rgba(0, 224, 184, 0.1);
   color: var(--accent);
+  border: 1px solid rgba(0, 224, 184, 0.18);
   border-radius: 999px;
   padding: 3px 10px;
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .ability-box {
@@ -374,7 +392,8 @@ li {
 }
 
 .ability-box div {
-  background: var(--panel2);
+  background: rgba(23, 41, 67, 0.92);
+  border: 1px solid rgba(74, 163, 255, 0.16);
   border-radius: var(--radius-sm);
   padding: 12px 18px;
   min-width: 76px;
@@ -393,7 +412,7 @@ li {
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 1.6rem;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .fm-content-grid {
@@ -408,8 +427,8 @@ li {
 
 /* ===== 右侧属性栏 ===== */
 .right-analysis {
-  background: var(--panel);
-  border-left: 1px solid var(--border);
+  background: rgba(10, 23, 48, 0.9);
+  border-left: 1px solid rgba(74, 163, 255, 0.16);
   padding: 14px 12px;
   overflow-y: auto;
   max-height: calc(100vh - 90px);
@@ -427,7 +446,7 @@ li {
   align-items: center;
   gap: 12px;
   padding: 7px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(142, 166, 196, 0.12);
   font-size: 0.8rem;
 }
 
@@ -439,7 +458,7 @@ li {
 .attr-row b,
 .season-row b {
   color: #fff;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .attr-row b.elite {
@@ -447,23 +466,25 @@ li {
 }
 
 .attr-row b.good {
-  color: #6ab0f3;
+  color: var(--blue);
 }
 
 .attr-row b.weak {
-  color: #e57373;
+  color: #ff7a8f;
 }
 
 /* ===== 内嵌球星卡 ===== */
 .star-card-embedded {
-  background: var(--card-bg);
-  border: 2px solid #2a2d3d;
+  background:
+    radial-gradient(circle at top right, rgba(0, 224, 184, 0.16), transparent 36%),
+    var(--card-bg);
+  border: 2px solid rgba(0, 224, 184, 0.22);
   border-radius: 18px;
   padding: 22px 24px;
   position: relative;
   overflow: hidden;
   min-height: 210px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5);
 }
 
 .star-card-embedded::before {
@@ -473,7 +494,7 @@ li {
   right: -46px;
   width: 150px;
   height: 150px;
-  background: radial-gradient(circle, rgba(240, 168, 48, 0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(215, 181, 109, 0.22) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -504,10 +525,10 @@ li {
   position: absolute;
   right: 20px;
   bottom: 8px;
-  color: rgba(240, 168, 48, 0.24);
+  color: rgba(0, 224, 184, 0.18);
   font-family: var(--font-mono);
   font-size: 4rem;
-  font-weight: 900;
+  font-weight: 950;
   line-height: 1;
   pointer-events: none;
 }
@@ -515,7 +536,7 @@ li {
 .star-pos {
   color: var(--accent);
   font-size: 0.86rem;
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: 1px;
   text-transform: uppercase;
   position: relative;
@@ -525,7 +546,7 @@ li {
 .star-name {
   color: #fff;
   font-size: 1.9rem;
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: -0.5px;
   position: relative;
   z-index: 1;
@@ -543,7 +564,7 @@ li {
 .star-stat-item {
   min-width: 82px;
   background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(0, 224, 184, 0.14);
   border-radius: 10px;
   padding: 9px 14px;
   text-align: center;
@@ -554,7 +575,7 @@ li {
   color: #fff;
   font-family: var(--font-mono);
   font-size: 1.35rem;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .star-stat-item .lbl {
@@ -580,12 +601,12 @@ table {
 }
 
 th {
-  background: var(--panel2);
+  background: #0b1830;
   color: var(--sub);
   text-align: left;
   padding: 10px 12px;
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 850;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -594,12 +615,12 @@ th {
 td {
   padding: 10px 12px;
   color: var(--text);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  border-bottom: 1px solid rgba(142, 166, 196, 0.11);
   white-space: nowrap;
 }
 
 tbody tr:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(0, 224, 184, 0.035);
 }
 
 .result-badge {
@@ -607,21 +628,21 @@ tbody tr:hover {
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .result-badge.win {
-  background: rgba(46, 204, 113, 0.18);
+  background: rgba(34, 197, 94, 0.16);
   color: var(--win);
 }
 
 .result-badge.draw {
-  background: rgba(243, 156, 18, 0.18);
+  background: rgba(234, 179, 8, 0.16);
   color: var(--draw);
 }
 
 .result-badge.loss {
-  background: rgba(231, 76, 60, 0.18);
+  background: rgba(239, 68, 68, 0.16);
   color: var(--loss);
 }
 
@@ -639,17 +660,17 @@ tbody tr:hover {
 /* ===== 能力变化 ===== */
 .ability-up {
   color: var(--win);
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .ability-down {
   color: var(--loss);
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .ability-flat {
   color: var(--sub);
-  font-weight: 800;
+  font-weight: 850;
 }
 
 /* ===== 表单 ===== */
@@ -664,9 +685,9 @@ input,
 textarea,
 select {
   width: 100%;
-  background: var(--panel2);
+  background: rgba(23, 41, 67, 0.92);
   color: #fff;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(74, 163, 255, 0.16);
   border-radius: 7px;
   padding: 10px 14px;
   font-size: 0.85rem;
@@ -679,7 +700,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(240, 168, 48, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 224, 184, 0.1);
 }
 
 textarea {
@@ -689,12 +710,12 @@ textarea {
 }
 
 .primary-btn {
-  background: var(--accent);
-  color: #0f1119;
+  background: linear-gradient(135deg, var(--accent), #1d79ff);
+  color: #06111f;
   border: none;
   border-radius: 7px;
   padding: 10px 20px;
-  font-weight: 900;
+  font-weight: 950;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -717,36 +738,36 @@ textarea {
 
 .result-btn {
   background: transparent;
-  border: 2px solid var(--border);
+  border: 2px solid rgba(74, 163, 255, 0.2);
   color: var(--sub);
   border-radius: 999px;
   padding: 8px 16px;
   cursor: pointer;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 850;
   transition: var(--transition);
 }
 
 .result-btn:hover {
-  border-color: #555;
-  color: #ccc;
+  border-color: var(--accent);
+  color: #fff;
 }
 
 .result-btn.selected-win {
   border-color: var(--win);
-  background: rgba(46, 204, 113, 0.15);
+  background: rgba(34, 197, 94, 0.15);
   color: var(--win);
 }
 
 .result-btn.selected-draw {
   border-color: var(--draw);
-  background: rgba(243, 156, 18, 0.15);
+  background: rgba(234, 179, 8, 0.15);
   color: var(--draw);
 }
 
 .result-btn.selected-loss {
   border-color: var(--loss);
-  background: rgba(231, 76, 60, 0.15);
+  background: rgba(239, 68, 68, 0.15);
   color: var(--loss);
 }
 
@@ -759,7 +780,7 @@ textarea {
 
 .coach-card {
   background: var(--card-bg);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(74, 163, 255, 0.16);
   border-radius: var(--radius);
   padding: 16px 18px;
   text-align: center;
@@ -776,13 +797,13 @@ textarea {
 }
 
 .coach-card.head-coach {
-  border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(240, 168, 48, 0.18);
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(215, 181, 109, 0.18);
 }
 
 .coach-card.selected {
   border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(240, 168, 48, 0.22);
+  box-shadow: 0 0 20px rgba(0, 224, 184, 0.22);
 }
 
 .coach-badge-head {
@@ -797,32 +818,33 @@ textarea {
   height: 60px;
   margin: 0 auto 10px;
   border-radius: 50%;
-  background: var(--panel2);
-  border: 2px solid var(--border);
+  background: rgba(23, 41, 67, 0.92);
+  border: 2px solid rgba(74, 163, 255, 0.2);
   color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.6rem;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .coach-card.head-coach .coach-avatar {
-  border-color: var(--accent);
+  border-color: var(--gold);
+  color: var(--gold);
   font-size: 2rem;
-  box-shadow: 0 0 16px rgba(240, 168, 48, 0.28);
+  box-shadow: 0 0 16px rgba(215, 181, 109, 0.28);
 }
 
 .coach-name {
   color: #fff;
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .coach-role {
   color: var(--accent);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 850;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   margin-top: 2px;
@@ -858,10 +880,10 @@ textarea {
   margin-top: 12px;
   padding: 8px 10px;
   border-radius: 999px;
-  background: rgba(240, 168, 48, 0.14);
-  color: var(--accent);
+  background: rgba(215, 181, 109, 0.14);
+  color: var(--gold);
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 /* ===== 奖项系统 ===== */
@@ -870,6 +892,7 @@ textarea {
   position: relative;
   overflow: hidden;
   min-height: 220px;
+  border-top: 3px solid rgba(215, 181, 109, 0.58);
 }
 
 .award-card::before {
@@ -879,7 +902,7 @@ textarea {
   height: 120px;
   right: -40px;
   top: -40px;
-  background: radial-gradient(circle, rgba(240, 168, 48, 0.22), transparent 70%);
+  background: radial-gradient(circle, rgba(215, 181, 109, 0.22), transparent 70%);
   border-radius: 50%;
 }
 
@@ -891,15 +914,15 @@ textarea {
 .award-name {
   color: #fff;
   font-size: 1.45rem;
-  font-weight: 900;
+  font-weight: 950;
   margin: 10px 0 4px;
 }
 
 .award-value {
-  color: var(--accent);
+  color: var(--gold);
   font-family: var(--font-mono);
   font-size: 1.1rem;
-  font-weight: 900;
+  font-weight: 950;
   margin-bottom: 8px;
 }
 
@@ -912,7 +935,7 @@ textarea {
 .player-award-badge {
   min-width: 150px;
   background: var(--card-bg);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(215, 181, 109, 0.18);
   border-radius: 12px;
   padding: 14px;
   text-align: center;
@@ -949,15 +972,16 @@ textarea {
   position: relative;
   overflow: hidden;
   border-radius: 14px;
-  border: 4px solid rgba(255, 255, 255, 0.86);
-  background: linear-gradient(
-    180deg,
-    #3a7d3a 0%,
-    #357535 30%,
-    #2f6f2f 50%,
-    #357535 70%,
-    #3a7d3a 100%
-  );
+  border: 4px solid rgba(229, 247, 239, 0.86);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 28px,
+      rgba(0, 0, 0, 0.02) 28px,
+      rgba(0, 0, 0, 0.02) 56px
+    ),
+    linear-gradient(180deg, #267344 0%, #1f663c 35%, #1c5a36 50%, #1f663c 70%, #267344 100%);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
@@ -1039,11 +1063,11 @@ textarea {
   width: 31px;
   height: 31px;
   border-radius: 50%;
-  background: var(--panel2);
+  background: #0b1830;
   border: 2px solid #fff;
   color: #fff;
   font-size: 0.58rem;
-  font-weight: 900;
+  font-weight: 950;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1060,7 +1084,7 @@ textarea {
 }
 
 .pitch-player.gk {
-  background: #2c3e50;
+  background: #203957;
   border-color: var(--draw);
   width: 35px;
   height: 35px;
@@ -1093,7 +1117,7 @@ textarea {
     position: static;
     max-height: none;
     border-left: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(74, 163, 255, 0.16);
   }
 
   .dashboard-grid {
@@ -1129,7 +1153,7 @@ textarea {
     justify-content: space-around;
     overflow-x: auto;
     border-right: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(74, 163, 255, 0.16);
     padding: 8px 4px;
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
@@ -1173,7 +1197,7 @@ textarea {
     position: static;
     max-height: none;
     border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(74, 163, 255, 0.16);
     display: flex;
     gap: 6px;
     overflow-x: auto;
