@@ -13,7 +13,16 @@ const initialPlayers = [
     tags: ["跑动", "执行力", "左路稳定"],
     summary: "左路稳定型球员，适合承担防守、补位和边路衔接任务。",
     suggestions: ["前插时可以更果断。", "传球选择可增加向前比例。", "继续提升传中质量。"],
-    attributes: { 速度: 74, 射门: 52, 盘带: 72, 传球: 69, 防守: 73, 体能: 76, 力量: 70, 意识: 72 },
+    attributes: {
+      速度: 74,
+      射门: 52,
+      盘带: 72,
+      传球: 69,
+      防守: 73,
+      体能: 76,
+      力量: 70,
+      意识: 72,
+    },
     matches: [],
   },
   {
@@ -27,7 +36,16 @@ const initialPlayers = [
     tags: ["扫荡", "拦截", "高覆盖"],
     summary: "负责中场保护，拦截对手进攻，为球队提供稳定屏障。",
     suggestions: ["注意纵向保护。", "出球时更耐心。", "领先时保持专注。"],
-    attributes: { 速度: 72, 射门: 48, 盘带: 63, 传球: 65, 防守: 82, 体能: 84, 力量: 84, 意识: 74 },
+    attributes: {
+      速度: 72,
+      射门: 48,
+      盘带: 63,
+      传球: 65,
+      防守: 82,
+      体能: 84,
+      力量: 84,
+      意识: 74,
+    },
     matches: [],
   },
   {
@@ -41,7 +59,16 @@ const initialPlayers = [
     tags: ["突破", "创造", "多位置"],
     summary: "可承担多个前场角色，适合制造进攻变化。",
     suggestions: ["增加无球跑动。", "突破后选择更果断。", "提升最后一传稳定性。"],
-    attributes: { 速度: 82, 射门: 70, 盘带: 82, 传球: 74, 防守: 50, 体能: 72, 力量: 68, 意识: 70 },
+    attributes: {
+      速度: 82,
+      射门: 70,
+      盘带: 82,
+      传球: 74,
+      防守: 50,
+      体能: 72,
+      力量: 68,
+      意识: 70,
+    },
     matches: [],
   },
   {
@@ -55,7 +82,16 @@ const initialPlayers = [
     tags: ["身体", "支点", "冲击"],
     summary: "前场力量型球员，适合承担支点和牵制任务。",
     suggestions: ["多利用身体保护球权。", "提前观察中路队友。", "背身拿球减少停顿。"],
-    attributes: { 速度: 68, 射门: 70, 盘带: 66, 传球: 58, 防守: 42, 体能: 70, 力量: 82, 意识: 66 },
+    attributes: {
+      速度: 68,
+      射门: 70,
+      盘带: 66,
+      传球: 58,
+      防守: 42,
+      体能: 70,
+      力量: 82,
+      意识: 66,
+    },
     matches: [],
   },
   {
@@ -69,7 +105,16 @@ const initialPlayers = [
     tags: ["接应", "传球", "组织"],
     summary: "适合阵地战中提供接应和短传连接。",
     suggestions: ["增加跑动参与度。", "加快处理球节奏。", "提升对抗稳定性。"],
-    attributes: { 速度: 62, 射门: 64, 盘带: 71, 传球: 73, 防守: 55, 体能: 66, 力量: 60, 意识: 70 },
+    attributes: {
+      速度: 62,
+      射门: 64,
+      盘带: 71,
+      传球: 73,
+      防守: 55,
+      体能: 66,
+      力量: 60,
+      意识: 70,
+    },
     matches: [],
   },
   {
@@ -83,7 +128,16 @@ const initialPlayers = [
     tags: ["节拍器", "组织", "出球"],
     summary: "球队进攻节奏掌控者，擅长短传和控球。",
     suggestions: ["对抗强时更早出球。", "增加无球接应。", "尝试更果断向前传球。"],
-    attributes: { 速度: 58, 射门: 60, 盘带: 76, 传球: 86, 防守: 62, 体能: 70, 力量: 58, 意识: 82 },
+    attributes: {
+      速度: 58,
+      射门: 60,
+      盘带: 76,
+      传球: 86,
+      防守: 62,
+      体能: 70,
+      力量: 58,
+      意识: 82,
+    },
     matches: [],
   },
   {
@@ -97,7 +151,16 @@ const initialPlayers = [
     tags: ["防线统帅", "站位", "补位"],
     summary: "球队后场稳定器，负责防线高度、补位和后场组织。",
     suggestions: ["高位防线时提醒队友保护距离。", "提前控制身后空间。", "更多组织队友站位。"],
-    attributes: { 速度: 72, 射门: 45, 盘带: 66, 传球: 70, 防守: 86, 体能: 80, 力量: 84, 意识: 84 },
+    attributes: {
+      速度: 72,
+      射门: 45,
+      盘带: 66,
+      传球: 70,
+      防守: 86,
+      体能: 80,
+      力量: 84,
+      意识: 84,
+    },
     matches: [],
   },
   {
@@ -111,7 +174,16 @@ const initialPlayers = [
     tags: ["多位置", "补位", "防守"],
     summary: "可在 RB、CB、GK 特殊场景中补充使用。",
     suggestions: ["位置切换时多沟通。", "防守站位更紧凑。", "门将位置可作为备用。"],
-    attributes: { 速度: 60, 射门: 40, 盘带: 55, 传球: 58, 防守: 70, 体能: 66, 力量: 68, 意识: 64 },
+    attributes: {
+      速度: 60,
+      射门: 40,
+      盘带: 55,
+      传球: 58,
+      防守: 70,
+      体能: 66,
+      力量: 68,
+      意识: 64,
+    },
     matches: [],
   },
 ];
@@ -123,22 +195,25 @@ const coachData = [
     name: "章兮兮",
     role: "主教练",
     roleKey: "head",
-    desc: "负责整体战术、首发选择与比赛决策。",
+    desc: "负责整体战术、首发选择、临场调整与比赛决策。",
     initials: "章",
+    focus: "整体战术 / 首发安排 / 比赛指挥",
   },
   {
     name: "陆梓鑫",
     role: "助理教练",
     roleKey: "assistant-player",
-    desc: "负责训练组织、球员沟通与执行反馈。",
+    desc: "负责训练组织、球员沟通、边路战术执行反馈。",
     initials: "陆",
+    focus: "训练组织 / 球员沟通 / 执行反馈",
   },
   {
     name: "杨寒",
     role: "助理教练",
     roleKey: "assistant",
-    desc: "负责数据记录、赛后复盘与战术辅助。",
+    desc: "负责数据记录、赛后复盘、阵容建议与战术辅助。",
     initials: "杨",
+    focus: "数据分析 / 赛后复盘 / 战术辅助",
   },
 ];
 
@@ -150,6 +225,11 @@ function averageRating(matches) {
 
 function totalStat(matches, key) {
   return matches.reduce((sum, m) => sum + Number(m[key] || 0), 0);
+}
+
+function getNumberValue(value) {
+  if (value === "-" || value === undefined || value === null) return 0;
+  return Number(value);
 }
 
 function getStatus(player) {
@@ -173,6 +253,21 @@ function countResults(matches) {
   });
 
   return { wins, draws, losses };
+}
+
+function getUniqueTeamMatches(players) {
+  const map = new Map();
+
+  players.forEach((player) => {
+    player.matches.forEach((match) => {
+      const key = `${match.date}-${match.opponent}`;
+      if (!map.has(key)) {
+        map.set(key, match);
+      }
+    });
+  });
+
+  return Array.from(map.values());
 }
 
 export default function App() {
@@ -235,6 +330,62 @@ export default function App() {
   }, [players]);
 
   const mvp = ranking.find((p) => p.matches.length > 0);
+
+  const awardStats = useMemo(() => {
+    const playerStats = players.map((player) => {
+      const goals = totalStat(player.matches, "goals");
+      const assists = totalStat(player.matches, "assists");
+      const avgRating = averageRating(player.matches);
+      const ratingScore = getNumberValue(avgRating);
+
+      return {
+        ...player,
+        goals,
+        assists,
+        avgRating,
+        ratingScore,
+      };
+    });
+
+    const topScorer = [...playerStats].sort(
+      (a, b) => b.goals - a.goals || b.ratingScore - a.ratingScore || b.ability - a.ability
+    )[0];
+
+    const assistKing = [...playerStats].sort(
+      (a, b) => b.assists - a.assists || b.ratingScore - a.ratingScore || b.ability - a.ability
+    )[0];
+
+    const bestDefender = [...playerStats]
+      .filter((player) => player.category === "后卫")
+      .map((player) => {
+        const defense = player.attributes?.防守 || 0;
+        const body = player.attributes?.力量 || player.attributes?.身体 || 0;
+        const awareness = player.attributes?.意识 || 0;
+
+        return {
+          ...player,
+          defenseScore: defense * 0.45 + body * 0.2 + awareness * 0.2 + player.ability * 0.15,
+        };
+      })
+      .sort((a, b) => b.defenseScore - a.defenseScore)[0];
+
+    const teamMatches = getUniqueTeamMatches(players);
+    const teamResult = countResults(teamMatches);
+    const coachMatches = teamMatches.length;
+    const coachWinRate =
+      coachMatches > 0 ? `${((teamResult.wins / coachMatches) * 100).toFixed(0)}%` : "-";
+
+    return {
+      playerStats,
+      topScorer,
+      assistKing,
+      bestDefender,
+      coachMatches,
+      coachWinRate,
+      teamResult,
+      bestCoach: coachData[0],
+    };
+  }, [players]);
 
   const bestLineup = {
     前场: [...players]
@@ -304,6 +455,7 @@ export default function App() {
     { key: "players", label: "球员" },
     { key: "matches", label: "比赛" },
     { key: "lineup", label: "阵容" },
+    { key: "awards", label: "奖项" },
     { key: "coach", label: "教练组" },
   ];
 
@@ -326,7 +478,7 @@ export default function App() {
         <header className="fm-topbar">
           <div>
             <h1>球队内部战术中心 V8 🔥</h1>
-            <p>球星卡 / 比赛记录 / 阵容推荐 / 教练系统 / FM战术图</p>
+            <p>球星卡 / 比赛记录 / 阵容推荐 / 教练系统 / 奖项系统</p>
           </div>
           <div className="top-actions">
             <span>本地保存</span>
@@ -437,6 +589,11 @@ export default function App() {
                     </section>
 
                     <section className="panel wide">
+                      <h3>个人奖项</h3>
+                      <PlayerAwardBadges player={selectedPlayer} awardStats={awardStats} />
+                    </section>
+
+                    <section className="panel wide">
                       <h3>比赛记录</h3>
                       <MatchTable matches={selectedPlayer.matches} />
                     </section>
@@ -482,7 +639,15 @@ export default function App() {
         )}
 
         {view === "matches" && (
-          <div className="match-page" style={{ padding: "20px 28px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div
+            className="match-page"
+            style={{
+              padding: "20px 28px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
             <section className="panel">
               <h2>添加比赛记录</h2>
               <p style={{ marginBottom: "12px", color: "var(--sub)" }}>
@@ -522,7 +687,14 @@ export default function App() {
               </div>
 
               <div style={{ marginBottom: "12px" }}>
-                <label style={{ fontSize: "0.8rem", color: "var(--sub)", display: "block", marginBottom: "6px" }}>
+                <label
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "var(--sub)",
+                    display: "block",
+                    marginBottom: "6px",
+                  }}
+                >
                   比赛结果：
                 </label>
                 <div className="result-btn-group">
@@ -592,6 +764,47 @@ export default function App() {
           </section>
         )}
 
+        {view === "awards" && (
+          <section className="dashboard-grid">
+            <div className="panel wide">
+              <h2>球队赛季奖项</h2>
+              <p>根据当前比赛记录和球员能力数据自动生成，后续也可以改成人工评选。</p>
+            </div>
+
+            <AwardCard
+              title="射手王"
+              icon="⚽"
+              name={awardStats.topScorer?.name || "-"}
+              value={`${awardStats.topScorer?.goals || 0} 球`}
+              desc="按进球数自动评选"
+            />
+
+            <AwardCard
+              title="助攻王"
+              icon="🎯"
+              name={awardStats.assistKing?.name || "-"}
+              value={`${awardStats.assistKing?.assists || 0} 助攻`}
+              desc="按助攻数自动评选"
+            />
+
+            <AwardCard
+              title="最佳防守队员"
+              icon="🛡️"
+              name={awardStats.bestDefender?.name || "-"}
+              value={`防守评分 ${awardStats.bestDefender?.attributes?.防守 || "-"}`}
+              desc="综合防守、力量、意识和能力值评选"
+            />
+
+            <AwardCard
+              title="最佳主教练"
+              icon="👑"
+              name={awardStats.bestCoach?.name || "-"}
+              value={`执教 ${awardStats.coachMatches} 场`}
+              desc={`胜率 ${awardStats.coachWinRate}`}
+            />
+          </section>
+        )}
+
         {view === "coach" && (
           <section className="dashboard-grid">
             <div className="panel wide">
@@ -607,6 +820,23 @@ export default function App() {
                     <div className="coach-name">{coach.name}</div>
                     <div className="coach-role">{coach.role}</div>
                     <div className="coach-desc">{coach.desc}</div>
+
+                    <div className="coach-record">
+                      <span>职责</span>
+                      <strong>{coach.focus}</strong>
+                    </div>
+
+                    <div className="coach-record">
+                      <span>执教场次</span>
+                      <strong>{awardStats.coachMatches}</strong>
+                    </div>
+
+                    <div className="coach-record">
+                      <span>当前胜率</span>
+                      <strong>{awardStats.coachWinRate}</strong>
+                    </div>
+
+                    {coach.roleKey === "head" && <div className="coach-award">👑 最佳主教练候选</div>}
                   </div>
                 ))}
               </div>
@@ -659,14 +889,17 @@ function MatchTable({ matches }) {
           {matches.map((m, i) => {
             let resultLabel = "-";
             let resultClass = "";
+
             if (m.result === "win") {
               resultLabel = "胜";
               resultClass = "win";
             }
+
             if (m.result === "draw") {
               resultLabel = "平";
               resultClass = "draw";
             }
+
             if (m.result === "loss") {
               resultLabel = "负";
               resultClass = "loss";
@@ -749,7 +982,15 @@ function StarCardEmbedded({ player }) {
       <div className="star-number">{player.number}</div>
       <div className="star-pos">{player.position}</div>
       <div className="star-name">{player.name}</div>
-      <div style={{ color: "var(--sub)", fontSize: "0.8rem", marginTop: "2px", position: "relative", zIndex: 1 }}>
+      <div
+        style={{
+          color: "var(--sub)",
+          fontSize: "0.8rem",
+          marginTop: "2px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
         {player.role}
       </div>
 
@@ -826,6 +1067,62 @@ function FMPitch({ bestLineup, allPlayers }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function AwardCard({ title, icon, name, value, desc }) {
+  return (
+    <div className="panel award-card">
+      <div className="award-icon">{icon}</div>
+      <h2>{title}</h2>
+      <div className="award-name">{name}</div>
+      <div className="award-value">{value}</div>
+      <p>{desc}</p>
+    </div>
+  );
+}
+
+function PlayerAwardBadges({ player, awardStats }) {
+  const awards = [];
+
+  if (awardStats.topScorer?.name === player.name && awardStats.topScorer.goals > 0) {
+    awards.push({
+      icon: "⚽",
+      title: "射手王",
+      desc: `${awardStats.topScorer.goals} 球`,
+    });
+  }
+
+  if (awardStats.assistKing?.name === player.name && awardStats.assistKing.assists > 0) {
+    awards.push({
+      icon: "🎯",
+      title: "助攻王",
+      desc: `${awardStats.assistKing.assists} 助攻`,
+    });
+  }
+
+  if (awardStats.bestDefender?.name === player.name) {
+    awards.push({
+      icon: "🛡️",
+      title: "最佳防守队员",
+      desc: "防守综合评分最高",
+    });
+  }
+
+  if (!awards.length) {
+    return <p style={{ color: "var(--sub)" }}>暂无个人奖项，继续通过比赛表现争取奖项。</p>;
+  }
+
+  return (
+    <div className="player-awards">
+      {awards.map((award) => (
+        <div className="player-award-badge" key={award.title}>
+          <span>{award.icon}</span>
+          <strong>{award.title}</strong>
+          <small>{award.desc}</small>
+        </div>
+      ))}
     </div>
   );
 }
