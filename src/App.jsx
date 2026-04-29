@@ -1,474 +1,1119 @@
-import "./styles.css";
-import React, { useEffect, useMemo, useState } from "react";
-
-const defaultPlayers = [
-  {
-    name: "陆梓鑫",
-    number: 3,
-    category: "后卫",
-    position: "LB",
-    role: "边路稳定器",
-    ability: 74,
-    potential: 82,
-    foot: "左脚",
-    age: 23,
-    rarity: "银卡稀有",
-    cardType: "工兵型执行者",
-    attributes: { 速度: 74, 射门: 52, 传球: 69, 盘带: 72, 防守: 73, 身体: 70 },
-    tags: ["跑动", "执行力", "左路稳定"],
-    summary: "左路稳定型球员，适合承担防守、补位和边路衔接任务。",
-    suggestions: ["前插时可以更果断。", "传球选择可增加向前比例。", "继续提升传中质量。"],
-    matches: [],
-  },
-  {
-    name: "戴天麒",
-    number: 17,
-    category: "中场",
-    position: "CDM / RB",
-    role: "防守屏障",
-    ability: 80,
-    potential: 86,
-    foot: "右脚",
-    age: 17,
-    rarity: "金卡稀有",
-    cardType: "扫荡型屏障",
-    attributes: { 速度: 72, 射门: 48, 传球: 65, 盘带: 63, 防守: 82, 身体: 84 },
-    tags: ["扫荡者", "拦截", "高覆盖"],
-    summary: "负责中场保护，拦截对手进攻，为球队提供稳定屏障。",
-    suggestions: ["注意纵向保护。", "出球时更耐心。", "领先时保持专注。"],
-    matches: [],
-  },
-  {
-    name: "吴易纬",
-    number: 11,
-    category: "前场",
-    position: "LW / RW / CAM",
-    role: "前场多面手",
-    ability: 78,
-    potential: 80,
-    foot: "右脚",
-    age: 20,
-    rarity: "金卡普通",
-    cardType: "前场推进点",
-    attributes: { 速度: 82, 射门: 70, 传球: 74, 盘带: 82, 防守: 50, 身体: 68 },
-    tags: ["突破", "创造", "多位置"],
-    summary: "可承担多个前场角色，适合制造进攻变化。",
-    suggestions: ["增加无球跑动。", "突破后选择更果断。", "提升最后一传稳定性。"],
-    matches: [],
-  },
-  {
-    name: "贾玉乐",
-    number: 9,
-    category: "前场",
-    position: "LW / ST",
-    role: "前场冲击点",
-    ability: 72,
-    potential: 74,
-    foot: "右脚",
-    age: 20,
-    rarity: "银卡普通",
-    cardType: "前场支点",
-    attributes: { 速度: 68, 射门: 70, 传球: 58, 盘带: 66, 防守: 42, 身体: 82 },
-    tags: ["身体", "支点", "冲击"],
-    summary: "前场力量型球员，适合承担支点和牵制任务。",
-    suggestions: ["多利用身体保护球权。", "提前观察中路队友。", "背身拿球减少停顿。"],
-    matches: [],
-  },
-  {
-    name: "张冬晨",
-    number: 8,
-    category: "前场",
-    position: "CAM",
-    role: "前场连接点",
-    ability: 73,
-    potential: 74,
-    foot: "右脚",
-    age: 20,
-    rarity: "银卡稀有",
-    cardType: "连接型前腰",
-    attributes: { 速度: 62, 射门: 64, 传球: 73, 盘带: 71, 防守: 55, 身体: 60 },
-    tags: ["接应", "传球", "组织"],
-    summary: "适合阵地战中提供接应和短传连接。",
-    suggestions: ["增加跑动参与度。", "加快处理球节奏。", "提升对抗稳定性。"],
-    matches: [],
-  },
-  {
-    name: "麻伟华",
-    number: 10,
-    category: "中场",
-    position: "CM",
-    role: "组织核心",
-    ability: 82,
-    potential: 84,
-    foot: "右脚",
-    age: 20,
-    rarity: "金卡稀有",
-    cardType: "组织核心",
-    attributes: { 速度: 58, 射门: 60, 传球: 86, 盘带: 76, 防守: 62, 身体: 58 },
-    tags: ["节拍器", "组织", "出球"],
-    summary: "球队进攻节奏掌控者，擅长短传和控球。",
-    suggestions: ["对抗强时更早出球。", "增加无球接应。", "尝试更果断向前传球。"],
-    matches: [],
-  },
-  {
-    name: "赵俊楠",
-    number: 25,
-    category: "后卫",
-    position: "CB",
-    role: "防线核心",
-    ability: 84,
-    potential: 86,
-    foot: "右脚",
-    age: 25,
-    rarity: "金卡稀有",
-    cardType: "防线指挥官",
-    attributes: { 速度: 72, 射门: 45, 传球: 70, 盘带: 66, 防守: 86, 身体: 84 },
-    tags: ["防线统帅", "站位", "补位"],
-    summary: "球队后场稳定器，负责防线高度、补位和后场组织。",
-    suggestions: ["高位防线时提醒队友保护距离。", "提前控制身后空间。", "更多组织队友站位。"],
-    matches: [],
-  },
-  {
-    name: "吴俊",
-    number: 13,
-    category: "后卫",
-    position: "RB / CB / GK",
-    role: "多功能防守补充",
-    ability: 70,
-    potential: 73,
-    foot: "右脚",
-    age: 20,
-    rarity: "银卡普通",
-    cardType: "多功能防守",
-    attributes: { 速度: 60, 射门: 40, 传球: 58, 盘带: 55, 防守: 70, 身体: 68 },
-    tags: ["多位置", "补位", "防守"],
-    summary: "可在 RB、CB、GK 特殊场景中补充使用。",
-    suggestions: ["位置切换时多沟通。", "防守站位更紧凑。", "门将位置可作为备用。"],
-    matches: [],
-  },
-];
-
-const coaches = [
-  { name: "章兮兮", role: "主教练", duty: "负责整体战术、首发选择与比赛决策。" },
-  { name: "陆梓鑫", role: "助理教练", duty: "负责训练组织、球员沟通与执行反馈。" },
-  { name: "杨寒", role: "助理教练", duty: "负责数据记录、赛后复盘与战术辅助。" },
-];
-
-const categories = ["前场", "中场", "后卫"];
-
-function averageRating(matches) {
-  if (!matches.length) return "-";
-  return (matches.reduce((s, m) => s + Number(m.rating || 0), 0) / matches.length).toFixed(1);
+:root {
+    --bg: #0f1119;
+    --panel: #161822;
+    --border: #252836;
+    --text: #e0e0e0;
+    --sub: #9094a6;
+    --accent: #f0a830;
+    --accent2: #e84855;
+    --green: #2ecc71;
+    --blue: #3498db;
+    --win: #27ae60;
+    --draw: #f39c12;
+    --loss: #e74c3c;
+    --card-bg: linear-gradient(145deg, #1a1d2e 0%, #1e2135 50%, #1a1d2e 100%);
+    --gold: #f0c060;
+    --star: #ffd700;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --transition: 0.2s ease;
+    --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
-function total(matches, key) {
-  return matches.reduce((s, m) => s + Number(m[key] || 0), 0);
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-export default function App() {
-  const [players, setPlayers] = useState(() => {
-    const saved = localStorage.getItem("team-v8-data");
-    return saved ? JSON.parse(saved) : defaultPlayers;
-  });
-  const [view, setView] = useState("players");
-  const [selectedName, setSelectedName] = useState("陆梓鑫");
-  const [form, setForm] = useState({ date: "", opponent: "", goals: "", assists: "", rating: "", note: "" });
+body {
+    font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
 
-  useEffect(() => {
-    localStorage.setItem("team-v8-data", JSON.stringify(players));
-  }, [players]);
+/* ============ SHELL LAYOUT ============ */
+.fm-shell {
+    display: flex;
+    min-height: 100vh;
+    position: relative;
+}
 
-  const selected = players.find((p) => p.name === selectedName) || players[0];
-  const allMatches = players.flatMap((p) => p.matches);
-  const ranking = useMemo(() => {
-    return [...players]
-      .map((p) => ({ ...p, avg: averageRating(p.matches) }))
-      .sort((a, b) => {
-        const av = a.avg === "-" ? 0 : Number(a.avg);
-        const bv = b.avg === "-" ? 0 : Number(b.avg);
-        return bv - av || b.ability - a.ability;
-      });
-  }, [players]);
+.fm-left-nav {
+    width: 200px;
+    min-width: 200px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 10px;
+    gap: 4px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+    transition: transform 0.3s ease;
+}
 
-  const mvp = ranking.find((p) => p.matches.length > 0);
+.club-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0f1119;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.3rem;
+    margin: 0 auto 16px;
+    letter-spacing: 1px;
+    box-shadow: 0 0 24px rgba(240, 168, 48, 0.35);
+    flex-shrink: 0;
+}
 
-  function addMatch() {
-    if (!form.date || !form.opponent || !form.rating) {
-      alert("请至少填写日期、对手和评分");
-      return;
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: var(--transition);
+    text-align: left;
+    width: 100%;
+    white-space: nowrap;
+}
+.nav-item:hover {
+    background: #1e2135;
+    color: #d0d0d0;
+}
+.nav-item.active {
+    background: #1e2135;
+    color: var(--accent);
+    font-weight: 700;
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.fm-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding-bottom: 0;
+}
+
+.fm-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-wrap: wrap;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+.fm-topbar h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, var(--accent), #f7c978);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.fm-topbar p {
+    font-size: 0.8rem;
+    color: var(--sub);
+    margin-top: 2px;
+}
+.top-actions {
+    display: flex;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: var(--sub);
+    align-items: center;
+}
+.top-actions span {
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: #1e2135;
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
+}
+
+/* ============ DASHBOARD ============ */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 20px 28px;
+}
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+}
+.panel.wide {
+    grid-column: span 2;
+}
+.panel h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fff;
+    letter-spacing: -0.2px;
+}
+.panel h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ccc;
+}
+.info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+    padding: 20px 16px;
+}
+.info-card span {
+    font-size: 0.75rem;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.info-card strong {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #fff;
+    font-family: var(--font-mono);
+}
+.info-card.result-win strong {
+    color: var(--win);
+}
+.info-card.result-draw strong {
+    color: var(--draw);
+}
+.info-card.result-loss strong {
+    color: var(--loss);
+}
+
+/* ============ PLAYER LAYOUT ============ */
+.player-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr 220px;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+}
+.player-list {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 12px 8px;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+    position: sticky;
+    top: 100px;
+}
+.player-group h3 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    padding: 10px 8px 4px;
+    margin-top: 4px;
+}
+.player-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.78rem;
+    width: 100%;
+    text-align: left;
+    transition: var(--transition);
+    flex-wrap: wrap;
+}
+.player-row:hover {
+    background: #1e2135;
+}
+.player-row.active {
+    background: #1e2135;
+    border-left: 3px solid var(--accent);
+    font-weight: 700;
+}
+.player-row span {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.7rem;
+    min-width: 20px;
+}
+.player-row strong {
+    font-size: 0.8rem;
+    flex: 1;
+    min-width: 50px;
+}
+.player-row small {
+    color: var(--sub);
+    font-size: 0.65rem;
+}
+
+.fm-player-page {
+    padding: 20px 24px;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+}
+.v7-player-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.player-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.player-hero h2 {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.5px;
+}
+.player-hero p {
+    color: var(--sub);
+    font-size: 0.85rem;
+}
+.tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+.tag-row span {
+    background: #1e2135;
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.ability-box {
+    display: flex;
+    gap: 20px;
+    text-align: center;
+}
+.ability-box div {
+    background: #1e2135;
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+}
+.ability-box small {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.ability-box strong {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--accent);
+    font-family: var(--font-mono);
+}
+
+.fm-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.fm-content-grid .panel.wide {
+    grid-column: span 2;
+}
+
+.right-analysis {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 14px 12px;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+    position: sticky;
+    top: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.attr-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 0.78rem;
+}
+.attr-row span {
+    color: var(--sub);
+}
+.attr-row b {
+    font-weight: 700;
+}
+.attr-row b.elite {
+    color: var(--accent);
+}
+.attr-row b.good {
+    color: #6ab0f3;
+}
+.attr-row b.weak {
+    color: #e57373;
+}
+.season-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 0.8rem;
+}
+.season-row span {
+    color: var(--sub);
+}
+.season-row b {
+    font-weight: 700;
+    color: #fff;
+}
+
+/* ============ STAR CARD (内嵌球星卡) ============ */
+.star-card-embedded {
+    background: var(--card-bg);
+    border: 2px solid #2a2d3d;
+    border-radius: 16px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    min-height: 200px;
+}
+.star-card-embedded::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, rgba(240, 168, 48, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.star-card-embedded .star-glow {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 2rem;
+    animation: starPulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes starPulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+}
+.star-card-embedded .star-number {
+    font-size: 4rem;
+    font-weight: 900;
+    color: rgba(240, 168, 48, 0.25);
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+    font-family: var(--font-mono);
+    pointer-events: none;
+    line-height: 1;
+    letter-spacing: -2px;
+}
+.star-card-embedded .star-name {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.5px;
+    position: relative;
+    z-index: 1;
+}
+.star-card-embedded .star-pos {
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    position: relative;
+    z-index: 1;
+}
+.star-card-embedded .star-stats-mini {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+}
+.star-card-embedded .star-stat-item {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 8px 14px;
+}
+.star-card-embedded .star-stat-item .val {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #fff;
+    font-family: var(--font-mono);
+    display: block;
+}
+.star-card-embedded .star-stat-item .lbl {
+    font-size: 0.6rem;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============ MATCH TABLE ============ */
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 6px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    min-width: 500px;
+}
+table th {
+    background: #1e2135;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--sub);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+}
+table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    white-space: nowrap;
+}
+table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+.result-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+.result-badge.win {
+    background: rgba(46, 204, 113, 0.2);
+    color: var(--win);
+}
+.result-badge.draw {
+    background: rgba(243, 156, 18, 0.2);
+    color: var(--draw);
+}
+.result-badge.loss {
+    background: rgba(231, 76, 60, 0.2);
+    color: var(--loss);
+}
+.empty-match {
+    text-align: center;
+    padding: 30px;
+    color: var(--sub);
+}
+.empty-match .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+}
+
+/* ============ FORM ============ */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+input,
+textarea,
+select {
+    background: #1e2135;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-family: inherit;
+    width: 100%;
+    transition: var(--transition);
+}
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(240, 168, 48, 0.1);
+}
+textarea {
+    min-height: 80px;
+    resize: vertical;
+    margin-bottom: 12px;
+}
+.primary-btn {
+    background: var(--accent);
+    color: #0f1119;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+    transition: var(--transition);
+}
+.primary-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+.primary-btn.danger {
+    background: var(--accent2);
+    color: #fff;
+}
+.result-btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.result-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    background: transparent;
+    color: var(--sub);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+.result-btn:hover {
+    border-color: #555;
+    color: #ccc;
+}
+.result-btn.selected-win {
+    border-color: var(--win);
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--win);
+    font-weight: 700;
+}
+.result-btn.selected-draw {
+    border-color: var(--draw);
+    background: rgba(243, 156, 18, 0.15);
+    color: var(--draw);
+    font-weight: 700;
+}
+.result-btn.selected-loss {
+    border-color: var(--loss);
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--loss);
+    font-weight: 700;
+}
+
+/* ============ COACH CARDS ============ */
+.coach-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+}
+.coach-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    text-align: center;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+.coach-card:hover {
+    border-color: #444;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.coach-card.head-coach {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(240, 168, 48, 0.2);
+}
+.coach-card .coach-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #1e2135;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--accent);
+    border: 2px solid var(--border);
+}
+.coach-card.head-coach .coach-avatar {
+    border-color: var(--accent);
+    font-size: 2rem;
+    box-shadow: 0 0 16px rgba(240, 168, 48, 0.3);
+}
+.coach-card .coach-name {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #fff;
+}
+.coach-card .coach-role {
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+.coach-card.head-coach .coach-role {
+    font-size: 0.75rem;
+    color: #f0c060;
+}
+.coach-card .coach-desc {
+    font-size: 0.7rem;
+    color: var(--sub);
+    margin-top: 6px;
+}
+.coach-badge-head {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.2rem;
+}
+
+/* ============ FM 战术图 ============ */
+.fm-pitch-container {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+}
+.fm-pitch {
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 3 / 4.5;
+    background: linear-gradient(180deg, #3a7d3a 0%, #357535 30%, #2f6f2f 50%, #357535 70%, #3a7d3a 100%);
+    border-radius: 12px;
+    position: relative;
+    border: 4px solid #fff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+.fm-pitch::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 5%;
+    right: 5%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-50%);
+}
+.fm-pitch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+.pitch-center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+.pitch-area-top,
+.pitch-area-bottom {
+    position: absolute;
+    left: 15%;
+    right: 15%;
+    height: 16%;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+}
+.pitch-area-top {
+    top: 2%;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+}
+.pitch-area-bottom {
+    bottom: 2%;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+.pitch-goal-top,
+.pitch-goal-bottom {
+    position: absolute;
+    left: 38%;
+    right: 38%;
+    height: 3%;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 2px;
+}
+.pitch-goal-top { top: 0; }
+.pitch-goal-bottom { bottom: 0; }
+.pitch-player {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: #1e2135;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: #fff;
+    transform: translate(-50%, -50%);
+    cursor: default;
+    transition: all 0.2s ease;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    line-height: 1;
+}
+.pitch-player:hover {
+    transform: translate(-50%, -50%) scale(1.3);
+    z-index: 10;
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(240, 168, 48, 0.5);
+}
+.pitch-player.gk {
+    background: #2c3e50;
+    border-color: #f39c12;
+    width: 34px;
+    height: 34px;
+    font-size: 0.6rem;
+}
+.pitch-player.forward { border-color: #e74c3c; }
+.pitch-player.midfield { border-color: #3498db; }
+.pitch-player.defender { border-color: #27ae60; }
+.pitch-label {
+    position: absolute;
+    font-size: 0.55rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+
+/* ============ MOBILE NAV TOGGLE ============ */
+.mobile-nav-toggle {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 200;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0f1119;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    font-weight: 900;
+}
+
+/* ============ RESPONSIVE (手机/平板适配) ============ */
+@media (max-width: 1024px) {
+    .player-layout {
+        grid-template-columns: 180px 1fr 180px;
     }
-
-    const newMatch = {
-      ...form,
-      goals: Number(form.goals || 0),
-      assists: Number(form.assists || 0),
-      rating: Number(form.rating),
-      note: form.note || "暂无备注",
-    };
-
-    setPlayers((old) =>
-      old.map((p) =>
-        p.name === selected.name ? { ...p, matches: [...p.matches, newMatch] } : p
-      )
-    );
-
-    setForm({ date: "", opponent: "", goals: "", assists: "", rating: "", note: "" });
-  }
-
-  function resetData() {
-    if (!window.confirm("确认恢复初始数据吗？")) return;
-    localStorage.removeItem("team-v8-data");
-    setPlayers(defaultPlayers);
-  }
-
-  return (
-    <div className="fm-shell">
-      <aside className="fm-left-nav">
-        <div className="club-badge">FC</div>
-        <button className={view === "dashboard" ? "nav-item active" : "nav-item"} onClick={() => setView("dashboard")}>主页</button>
-        <button className={view === "players" ? "nav-item active" : "nav-item"} onClick={() => setView("players")}>球员</button>
-        <button className={view === "matches" ? "nav-item active" : "nav-item"} onClick={() => setView("matches")}>比赛</button>
-        <button className={view === "lineup" ? "nav-item active" : "nav-item"} onClick={() => setView("lineup")}>阵容</button>
-        <button className={view === "coach" ? "nav-item active" : "nav-item"} onClick={() => setView("coach")}>教练组</button>
-      </aside>
-
-      <main className="fm-main">
-        <header className="fm-topbar">
-          <div>
-            <h1>球队内部战术中心 V8</h1>
-            <p>职业 UI / 球星卡 / 比赛记录 / 阵容推荐 / 教练组</p>
-          </div>
-          <div className="top-actions">
-            <span>本地保存</span>
-            <span>职业版</span>
-          </div>
-        </header>
-
-        {view === "dashboard" && (
-          <section className="dashboard-grid">
-            <InfoCard title="球员数量" value={players.length} />
-            <InfoCard title="比赛记录" value={allMatches.length} />
-            <InfoCard title="总进球" value={total(allMatches, "goals")} />
-            <InfoCard title="总助攻" value={total(allMatches, "assists")} />
-            <div className="panel wide">
-              <h2>自动 MVP</h2>
-              <p>{mvp ? `${mvp.name}｜场均评分 ${mvp.avg}` : "暂无比赛数据，录入后自动生成。"}</p>
-            </div>
-          </section>
-        )}
-
-        {view === "players" && (
-          <div className="player-layout">
-            <aside className="player-list">
-              {categories.map((cat) => (
-                <div className="player-group" key={cat}>
-                  <h3>{cat}</h3>
-                  {players.filter((p) => p.category === cat).map((p) => (
-                    <button
-                      key={p.name}
-                      className={selectedName === p.name ? "player-row active" : "player-row"}
-                      onClick={() => setSelectedName(p.name)}
-                    >
-                      <span>#{p.number}</span>
-                      <strong>{p.name}</strong>
-                      <small>{p.position}</small>
-                      <small>能力 {p.ability}｜潜力 {p.potential}</small>
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </aside>
-
-            <section className="fm-player-page">
-              <div className="v8-grid">
-                <StarCard player={selected} />
-
-                <div className="v8-detail">
-                  <div className="player-hero">
-                    <div>
-                      <h2>{selected.name}</h2>
-                      <p>{selected.position} / {selected.role}</p>
-                      <div className="tag-row">
-                        {selected.tags.map((tag) => <span key={tag}>{tag}</span>)}
-                      </div>
-                    </div>
-                    <div className="ability-box">
-                      <div><small>能力</small><strong>{selected.ability}</strong></div>
-                      <div><small>潜力</small><strong>{selected.potential}</strong></div>
-                    </div>
-                  </div>
-
-                  <div className="fm-content-grid">
-                    <section className="panel">
-                      <h3>球员定位</h3>
-                      <p>{selected.summary}</p>
-                    </section>
-                    <section className="panel">
-                      <h3>建议方向</h3>
-                      <ul>{selected.suggestions.map((s) => <li key={s}>{s}</li>)}</ul>
-                    </section>
-                    <section className="panel wide">
-                      <h3>比赛记录</h3>
-                      <MatchTable matches={selected.matches} />
-                    </section>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <aside className="right-analysis">
-              <section className="panel">
-                <h3>能力属性</h3>
-                {Object.entries(selected.attributes).map(([k, v]) => (
-                  <div className="attr-row" key={k}>
-                    <span>{k}</span>
-                    <b className={v >= 75 ? "elite" : v >= 65 ? "good" : "weak"}>{v}</b>
-                  </div>
-                ))}
-              </section>
-              <section className="panel">
-                <h3>赛季统计</h3>
-                <div className="season-row"><span>出场</span><b>{selected.matches.length}</b></div>
-                <div className="season-row"><span>进球</span><b>{total(selected.matches, "goals")}</b></div>
-                <div className="season-row"><span>助攻</span><b>{total(selected.matches, "assists")}</b></div>
-                <div className="season-row"><span>场均评分</span><b>{averageRating(selected.matches)}</b></div>
-              </section>
-            </aside>
-          </div>
-        )}
-
-        {view === "matches" && (
-          <div className="match-page">
-            <section className="panel">
-              <h2>添加比赛记录</h2>
-              <p>当前球员：<strong>{selected.name}</strong></p>
-              <div className="form-grid">
-                {["date", "opponent", "goals", "assists", "rating"].map((key) => (
-                  <input
-                    key={key}
-                    placeholder={{ date: "日期", opponent: "对手", goals: "进球", assists: "助攻", rating: "评分" }[key]}
-                    value={form[key]}
-                    onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                  />
-                ))}
-              </div>
-              <textarea placeholder="比赛备注" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-              <button className="primary-btn" onClick={addMatch}>添加记录</button>
-            </section>
-            <section className="panel">
-              <h2>{selected.name} 的比赛记录</h2>
-              <MatchTable matches={selected.matches} />
-            </section>
-          </div>
-        )}
-
-        {view === "lineup" && (
-          <section className="dashboard-grid">
-            {categories.map((cat) => (
-              <div className="panel" key={cat}>
-                <h2>{cat}</h2>
-                <ul>
-                  {[...players].filter((p) => p.category === cat).sort((a, b) => b.ability - a.ability).slice(0, 3).map((p) => (
-                    <li key={p.name}>{p.name}｜{p.position}｜能力 {p.ability}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </section>
-        )}
-
-        {view === "coach" && (
-          <section className="dashboard-grid">
-            {coaches.map((c) => (
-              <div className="panel coach-card" key={c.name}>
-                <h2>{c.name}</h2>
-                <h3>{c.role}</h3>
-                <p>{c.duty}</p>
-              </div>
-            ))}
-            <div className="panel wide">
-              <h2>评分排行榜</h2>
-              <MatchRanking ranking={ranking} />
-            </div>
-            <div className="panel">
-              <h2>数据管理</h2>
-              <button className="primary-btn" onClick={resetData}>恢复初始数据</button>
-            </div>
-          </section>
-        )}
-      </main>
-    </div>
-  );
+    .fm-left-nav {
+        width: 160px;
+        min-width: 160px;
+        padding: 12px 6px;
+    }
+    .nav-item {
+        padding: 9px 12px;
+        font-size: 0.78rem;
+        gap: 6px;
+    }
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 14px 16px;
+        gap: 10px;
+    }
+    .panel.wide {
+        grid-column: span 2;
+    }
+    .fm-content-grid {
+        grid-template-columns: 1fr;
+    }
+    .fm-content-grid .panel.wide {
+        grid-column: span 1;
+    }
+    .right-analysis {
+        max-height: none;
+        position: static;
+        border-left: none;
+        border-top: 1px solid var(--border);
+    }
 }
 
-function StarCard({ player }) {
-  const a = player.attributes;
-  return (
-    <div className="star-card">
-      <div className="card-brand">FC26</div>
-      <div className="card-topline">
-        <div>
-          <div className="card-rating">{player.ability}</div>
-          <div className="card-position">{player.position}</div>
-          <div className="card-foot">惯用脚<br /><strong>{player.foot}</strong></div>
-          <div className="card-number">#{player.number}</div>
-        </div>
-      </div>
-      <div className="card-avatar">{player.name[0]}</div>
-      <div className="card-name">{player.name}</div>
-      <div className="card-stats">
-        <div><span>速度</span><b>{a.速度}</b></div>
-        <div><span>射门</span><b>{a.射门}</b></div>
-        <div><span>传球</span><b>{a.传球}</b></div>
-        <div><span>盘带</span><b>{a.盘带}</b></div>
-        <div><span>防守</span><b>{a.防守}</b></div>
-        <div><span>身体</span><b>{a.身体}</b></div>
-      </div>
-      <div className="card-bottom">
-        <div><span>年龄</span><b>{player.age}</b></div>
-        <div><span>类型</span><b>{player.cardType}</b></div>
-        <div><span>稀有度</span><b>{player.rarity}</b></div>
-      </div>
-    </div>
-  );
+@media (max-width: 768px) {
+    .fm-shell {
+        flex-direction: column;
+    }
+    .fm-left-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        min-width: 100%;
+        height: auto;
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 8px 4px;
+        gap: 2px;
+        z-index: 150;
+        border-right: none;
+        border-top: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    }
+    .club-badge {
+        display: none;
+    }
+    .nav-item {
+        flex-direction: column;
+        gap: 2px;
+        padding: 7px 8px;
+        font-size: 0.6rem;
+        border-radius: 8px;
+        text-align: center;
+        min-width: 48px;
+        flex-shrink: 0;
+    }
+    .nav-item.active {
+        box-shadow: inset 0 -3px 0 var(--accent);
+        border-radius: 8px 8px 0 0;
+    }
+    .fm-main {
+        padding-bottom: 70px;
+    }
+    .fm-topbar {
+        padding: 14px 16px;
+        flex-direction: column;
+    }
+    .fm-topbar h1 {
+        font-size: 1.1rem;
+    }
+    .player-layout {
+        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+    }
+    .player-list {
+        position: static;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        overflow-x: auto;
+        gap: 4px;
+        padding: 8px;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+    .player-group {
+        display: flex;
+        flex-direction: column;
+        min-width: 120px;
+        flex-shrink: 0;
+    }
+    .player-group h3 {
+        font-size: 0.65rem;
+        padding: 4px 6px;
+    }
+    .player-row {
+        font-size: 0.7rem;
+        padding: 6px 8px;
+    }
+    .right-analysis {
+        position: static;
+        max-height: none;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+    }
+    .right-analysis .panel {
+        flex: 1 1 45%;
+        min-width: 150px;
+    }
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        padding: 10px 12px;
+        gap: 8px;
+    }
+    .panel.wide {
+        grid-column: span 1;
+    }
+    .fm-content-grid {
+        grid-template-columns: 1fr;
+    }
+    .fm-content-grid .panel.wide {
+        grid-column: span 1;
+    }
+    .coach-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+    .star-card-embedded .star-name {
+        font-size: 1.3rem;
+    }
+    .star-card-embedded .star-number {
+        font-size: 3rem;
+    }
+    .fm-pitch {
+        max-width: 100%;
+        aspect-ratio: 3 / 4;
+    }
+    .pitch-player {
+        width: 24px;
+        height: 24px;
+        font-size: 0.45rem;
+    }
+    .pitch-player.gk {
+        width: 28px;
+        height: 28px;
+        font-size: 0.5rem;
+    }
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    table {
+        font-size: 0.68rem;
+        min-width: 400px;
+    }
+    table th,
+    table td {
+        padding: 7px 8px;
+    }
+    .mobile-nav-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
-function MatchTable({ matches }) {
-  if (!matches.length) return <div className="empty-match">暂无比赛记录</div>;
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead><tr><th>日期</th><th>对手</th><th>进球</th><th>助攻</th><th>评分</th><th>备注</th></tr></thead>
-        <tbody>
-          {matches.map((m, i) => (
-            <tr key={i}><td>{m.date}</td><td>{m.opponent}</td><td>{m.goals}</td><td>{m.assists}</td><td>{m.rating}</td><td>{m.note}</td></tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function MatchRanking({ ranking }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead><tr><th>排名</th><th>球员</th><th>位置</th><th>场均评分</th><th>出场</th></tr></thead>
-        <tbody>
-          {ranking.map((p, i) => (
-            <tr key={p.name}><td>{i + 1}</td><td>{p.name}</td><td>{p.position}</td><td>{p.avg}</td><td>{p.matches.length}</td></tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function InfoCard({ title, value }) {
-  return (
-    <section className="panel info-card">
-      <span>{title}</span>
-      <strong>{value}</strong>
-    </section>
-  );
+@media (max-width: 480px) {
+    .fm-topbar h1 {
+        font-size: 1rem;
+    }
+    .fm-topbar p {
+        font-size: 0.7rem;
+    }
+    .ability-box {
+        gap: 8px;
+    }
+    .ability-box div {
+        padding: 8px 12px;
+    }
+    .ability-box strong {
+        font-size: 1.2rem;
+    }
+    .star-card-embedded {
+        padding: 14px 16px;
+    }
+    .star-card-embedded .star-name {
+        font-size: 1.1rem;
+    }
+    .star-card-embedded .star-number {
+        font-size: 2.4rem;
+        bottom: 4px;
+        right: 10px;
+    }
+    .coach-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .coach-card {
+        padding: 12px 10px;
+    }
+    .coach-card .coach-avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+    .coach-card.head-coach .coach-avatar {
+        font-size: 1.4rem;
+    }
+    .result-btn-group {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .result-btn {
+        text-align: center;
+        width: 100%;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .nav-item {
+        font-size: 0.55rem;
+        padding: 5px 4px;
+        min-width: 40px;
+    }
 }
