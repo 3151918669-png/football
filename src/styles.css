@@ -35,6 +35,12 @@ body {
   overflow-x: hidden;
 }
 
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+
 /* ===== 主体布局 ===== */
 .fm-shell {
   display: flex;
@@ -568,7 +574,7 @@ li {
 
 table {
   width: 100%;
-  min-width: 560px;
+  min-width: 760px;
   border-collapse: collapse;
   font-size: 0.78rem;
 }
@@ -628,6 +634,22 @@ tbody tr:hover {
 .empty-icon {
   font-size: 2.5rem;
   margin-bottom: 8px;
+}
+
+/* ===== 能力变化 ===== */
+.ability-up {
+  color: var(--win);
+  font-weight: 900;
+}
+
+.ability-down {
+  color: var(--loss);
+  font-weight: 900;
+}
+
+.ability-flat {
+  color: var(--sub);
+  font-weight: 800;
 }
 
 /* ===== 表单 ===== */
@@ -744,17 +766,23 @@ textarea {
   position: relative;
   overflow: hidden;
   transition: var(--transition);
+  cursor: pointer;
 }
 
 .coach-card:hover {
   transform: translateY(-2px);
-  border-color: #444;
+  border-color: var(--accent);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
 }
 
 .coach-card.head-coach {
   border-color: var(--accent);
   box-shadow: 0 0 20px rgba(240, 168, 48, 0.18);
+}
+
+.coach-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(240, 168, 48, 0.22);
 }
 
 .coach-badge-head {
@@ -1207,7 +1235,7 @@ textarea {
   }
 
   table {
-    min-width: 460px;
+    min-width: 620px;
     font-size: 0.68rem;
   }
 
