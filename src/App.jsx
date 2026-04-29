@@ -302,6 +302,14 @@ function getUniqueTeamMatches(players) {
   return Array.from(map.values());
 }
 
+function findPlayerByName(players, name, fallback) {
+  return players.find((player) => player.name === name) || fallback;
+}
+
+function findCoachByName(coaches, name, fallback) {
+  return coaches.find((coach) => coach.name === name) || fallback;
+}
+
 export default function App() {
   const [players, setPlayers] = useState(() => {
     try {
@@ -321,6 +329,27 @@ export default function App() {
     }
   });
 
+  const [manualAwards, setManualAwards] = useState(() => {
+    try {
+      const saved = localStorage.getItem("team-v8-manual-awards");
+      return saved
+        ? JSON.parse(saved)
+        : {
+            topScorer: "",
+            assistKing: "",
+            bestDefender: "",
+            bestCoach: "",
+          };
+    } catch {
+      return {
+        topScorer: "",
+        assistKing: "",
+        bestDefender: "",
+        bestCoach: "",
+      };
+    }
+  });
+
   const [view, setView] = useState("players");
   const [selectedName, setSelectedName] = useState("陆梓鑫");
   const [selectedCoachName, setSelectedCoachName] = useState("章兮兮");
@@ -333,6 +362,7 @@ export default function App() {
     assists: "",
     rating: "",
     note: "",
+    isMarked: false,
   });
 
   const [coachMatchForm, setCoachMatchForm] = useState({
@@ -340,6 +370,7 @@ export default function App() {
     opponent: "",
     result: "",
     note: "",
+    isMarked: false,
   });
 
   useEffect(() => {
@@ -357,6 +388,14 @@ export default function App() {
       // ignore localStorage errors
     }
   }, [coaches]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("team-v8-manual-awards", JSON.stringify(manualAwards));
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [manualAwards]);
 
   const selectedPlayer = players.find((p) => p.name === selectedName) || players[0];
   const selectedCoach = coaches.find((coach) => coach.name === selectedCoachName) || coaches[0];
@@ -405,15 +444,15 @@ export default function App() {
       };
     });
 
-    const topScorer = [...playerStats].sort(
+    const autoTopScorer = [...playerStats].sort(
       (a, b) => b.goals - a.goals || b.ratingScore - a.ratingScore || b.ability - a.ability
     )[0];
 
-    const assistKing = [...playerStats].sort(
+    const autoAssistKing = [...playerStats].sort(
       (a, b) => b.assists - a.assists || b.ratingScore - a.ratingScore || b.ability - a.ability
     )[0];
 
-    const bestDefender = [...playerStats]
+    const autoBestDefender = [...playerStats]
       .filter((player) => player.category === "后卫")
       .map((player) => {
         const defense = player.attributes?.防守 || 0;
@@ -426,12 +465,6 @@ export default function App() {
         };
       })
       .sort((a, b) => b.defenseScore - a.defenseScore)[0];
-
-    const teamMatches = getUniqueTeamMatches(players);
-    const teamResult = countResults(teamMatches);
-    const coachMatches = teamMatches.length;
-    const coachWinRate =
-      coachMatches > 0 ? `${((teamResult.wins / coachMatches) * 100).toFixed(0)}%` : "-";
 
     const coachRanking = [...coaches]
       .map((coach) => {
@@ -451,18 +484,36 @@ export default function App() {
       })
       .sort((a, b) => b.winRateNumber - a.winRateNumber || b.totalMatches - a.totalMatches);
 
+    const autoBestCoach = coachRanking[0] || coaches[0];
+
+    const topScorer = manualAwards.topScorer
+      ? findPlayerByName(players, manualAwards.topScorer, autoTopScorer)
+      : autoTopScorer;
+
+    const assistKing = manualAwards.assistKing
+      ? findPlayerByName(players, manualAwards.assistKing, autoAssistKing)
+      : autoAssistKing;
+
+    const bestDefender = manualAwards.bestDefender
+      ? findPlayerByName(players, manualAwards.bestDefender, autoBestDefender)
+      : autoBestDefender;
+
+    const bestCoach = manualAwards.bestCoach
+      ? findCoachByName(coachRanking, manualAwards.bestCoach, autoBestCoach)
+      : autoBestCoach;
+
     return {
       playerStats,
+      autoTopScorer,
+      autoAssistKing,
+      autoBestDefender,
       topScorer,
       assistKing,
       bestDefender,
-      coachMatches,
-      coachWinRate,
-      teamResult,
-      bestCoach: coachRanking[0] || coaches[0],
+      bestCoach,
       coachRanking,
     };
-  }, [players, coaches]);
+  }, [players, coaches, manualAwards]);
 
   const bestLineup = {
     前场: [...players]
@@ -498,6 +549,7 @@ export default function App() {
       assists: Number(matchForm.assists || 0),
       rating: Number(matchForm.rating),
       note: matchForm.note || "暂无备注",
+      isMarked: Boolean(matchForm.isMarked),
     };
 
     const abilityChange = calculateAbilityChange(newMatch);
@@ -531,6 +583,7 @@ export default function App() {
       assists: "",
       rating: "",
       note: "",
+      isMarked: false,
     });
   }, [matchForm, selectedPlayer.name]);
 
@@ -545,6 +598,7 @@ export default function App() {
       opponent: coachMatchForm.opponent,
       result: coachMatchForm.result,
       note: coachMatchForm.note || "暂无备注",
+      isMarked: Boolean(coachMatchForm.isMarked),
     };
 
     setCoaches((old) =>
@@ -563,8 +617,39 @@ export default function App() {
       opponent: "",
       result: "",
       note: "",
+      isMarked: false,
     });
   }, [coachMatchForm, selectedCoach.name]);
+
+  function togglePlayerMatchMark(playerName, matchIndex) {
+    setPlayers((old) =>
+      old.map((player) => {
+        if (player.name !== playerName) return player;
+
+        return {
+          ...player,
+          matches: player.matches.map((match, index) =>
+            index === matchIndex ? { ...match, isMarked: !match.isMarked } : match
+          ),
+        };
+      })
+    );
+  }
+
+  function toggleCoachMatchMark(coachName, matchIndex) {
+    setCoaches((old) =>
+      old.map((coach) => {
+        if (coach.name !== coachName) return coach;
+
+        return {
+          ...coach,
+          matches: coach.matches.map((match, index) =>
+            index === matchIndex ? { ...match, isMarked: !match.isMarked } : match
+          ),
+        };
+      })
+    );
+  }
 
   const resetData = useCallback(() => {
     const ok = window.confirm("确认清空所有比赛记录并恢复初始数据吗？");
@@ -572,8 +657,16 @@ export default function App() {
 
     localStorage.removeItem("team-v8-data");
     localStorage.removeItem("team-v8-coaches");
+    localStorage.removeItem("team-v8-manual-awards");
+
     setPlayers(initialPlayers);
     setCoaches(initialCoachData);
+    setManualAwards({
+      topScorer: "",
+      assistKing: "",
+      bestDefender: "",
+      bestCoach: "",
+    });
   }, []);
 
   const navItems = [
@@ -721,7 +814,10 @@ export default function App() {
 
                     <section className="panel wide">
                       <h3>比赛记录</h3>
-                      <MatchTable matches={selectedPlayer.matches} />
+                      <MatchTable
+                        matches={selectedPlayer.matches}
+                        onToggleMark={(index) => togglePlayerMatchMark(selectedPlayer.name, index)}
+                      />
                     </section>
                   </div>
                 </div>
@@ -775,15 +871,7 @@ export default function App() {
         )}
 
         {view === "matches" && (
-          <div
-            className="match-page"
-            style={{
-              padding: "20px 28px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-            }}
-          >
+          <div className="match-page" style={{ padding: "20px 28px", display: "flex", flexDirection: "column", gap: "16px" }}>
             <section className="panel">
               <h2>添加比赛记录</h2>
               <p style={{ marginBottom: "12px", color: "var(--sub)" }}>
@@ -823,14 +911,7 @@ export default function App() {
               </div>
 
               <div style={{ marginBottom: "12px" }}>
-                <label
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "var(--sub)",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label style={{ fontSize: "0.8rem", color: "var(--sub)", display: "block", marginBottom: "6px" }}>
                   比赛结果：
                 </label>
                 <div className="result-btn-group">
@@ -858,8 +939,19 @@ export default function App() {
               <textarea
                 placeholder="比赛备注"
                 value={matchForm.note}
+                style={{ minHeight: "130px", width: "100%" }}
                 onChange={(e) => setMatchForm({ ...matchForm, note: e.target.value })}
               />
+
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--sub)", marginBottom: "12px" }}>
+                <input
+                  type="checkbox"
+                  checked={matchForm.isMarked}
+                  style={{ width: "auto" }}
+                  onChange={(e) => setMatchForm({ ...matchForm, isMarked: e.target.checked })}
+                />
+                标记为关键比赛记录
+              </label>
 
               <button className="primary-btn" onClick={addMatchRecord}>
                 添加记录
@@ -868,7 +960,10 @@ export default function App() {
 
             <section className="panel">
               <h2>{selectedPlayer.name} 的比赛记录</h2>
-              <MatchTable matches={selectedPlayer.matches} />
+              <MatchTable
+                matches={selectedPlayer.matches}
+                onToggleMark={(index) => togglePlayerMatchMark(selectedPlayer.name, index)}
+              />
             </section>
           </div>
         )}
@@ -904,23 +999,55 @@ export default function App() {
           <section className="dashboard-grid">
             <div className="panel wide">
               <h2>球队赛季奖项</h2>
-              <p>根据当前比赛记录和球员能力数据自动生成，后续也可以改成人工评选。</p>
+              <p>可使用自动推荐，也可以手动指定奖项人选。</p>
             </div>
+
+            <AwardSelectPanel
+              title="射手王"
+              value={manualAwards.topScorer}
+              options={players}
+              autoName={awardStats.autoTopScorer?.name || "-"}
+              onChange={(value) => setManualAwards({ ...manualAwards, topScorer: value })}
+            />
+
+            <AwardSelectPanel
+              title="助攻王"
+              value={manualAwards.assistKing}
+              options={players}
+              autoName={awardStats.autoAssistKing?.name || "-"}
+              onChange={(value) => setManualAwards({ ...manualAwards, assistKing: value })}
+            />
+
+            <AwardSelectPanel
+              title="最佳防守队员"
+              value={manualAwards.bestDefender}
+              options={players}
+              autoName={awardStats.autoBestDefender?.name || "-"}
+              onChange={(value) => setManualAwards({ ...manualAwards, bestDefender: value })}
+            />
+
+            <AwardSelectPanel
+              title="最佳主教练"
+              value={manualAwards.bestCoach}
+              options={coaches}
+              autoName={awardStats.coachRanking?.[0]?.name || "-"}
+              onChange={(value) => setManualAwards({ ...manualAwards, bestCoach: value })}
+            />
 
             <AwardCard
               title="射手王"
               icon="⚽"
               name={awardStats.topScorer?.name || "-"}
-              value={`${awardStats.topScorer?.goals || 0} 球`}
-              desc="按进球数自动评选"
+              value={`${totalStat(awardStats.topScorer?.matches || [], "goals")} 球`}
+              desc={manualAwards.topScorer ? "手动指定" : "自动推荐"}
             />
 
             <AwardCard
               title="助攻王"
               icon="🎯"
               name={awardStats.assistKing?.name || "-"}
-              value={`${awardStats.assistKing?.assists || 0} 助攻`}
-              desc="按助攻数自动评选"
+              value={`${totalStat(awardStats.assistKing?.matches || [], "assists")} 助攻`}
+              desc={manualAwards.assistKing ? "手动指定" : "自动推荐"}
             />
 
             <AwardCard
@@ -928,7 +1055,7 @@ export default function App() {
               icon="🛡️"
               name={awardStats.bestDefender?.name || "-"}
               value={`防守评分 ${awardStats.bestDefender?.attributes?.防守 || "-"}`}
-              desc="综合防守、力量、意识和能力值评选"
+              desc={manualAwards.bestDefender ? "手动指定" : "综合防守、力量、意识和能力值评选"}
             />
 
             <AwardCard
@@ -936,7 +1063,7 @@ export default function App() {
               icon="👑"
               name={awardStats.bestCoach?.name || "-"}
               value={`执教 ${awardStats.bestCoach?.totalMatches || 0} 场`}
-              desc={`胜率 ${awardStats.bestCoach?.winRateText || "-"}`}
+              desc={manualAwards.bestCoach ? "手动指定" : `胜率 ${awardStats.bestCoach?.winRateText || "-"}`}
             />
           </section>
         )}
@@ -951,23 +1078,16 @@ export default function App() {
                   const record = countResults(coach.matches);
                   const totalMatches = coach.matches.length;
                   const winRate =
-                    totalMatches > 0
-                      ? `${((record.wins / totalMatches) * 100).toFixed(0)}%`
-                      : "-";
+                    totalMatches > 0 ? `${((record.wins / totalMatches) * 100).toFixed(0)}%` : "-";
 
                   return (
                     <div
                       key={coach.name}
-                      className={
-                        coach.roleKey === "head"
-                          ? "coach-card head-coach"
-                          : "coach-card"
-                      }
+                      className={coach.roleKey === "head" ? "coach-card head-coach" : "coach-card"}
                       onClick={() => setSelectedCoachName(coach.name)}
                       style={{
                         cursor: "pointer",
-                        borderColor:
-                          selectedCoachName === coach.name ? "var(--accent)" : undefined,
+                        borderColor: selectedCoachName === coach.name ? "var(--accent)" : undefined,
                       }}
                     >
                       {coach.roleKey === "head" && <div className="coach-badge-head">👑</div>}
@@ -999,9 +1119,7 @@ export default function App() {
                         </strong>
                       </div>
 
-                      {coach.roleKey === "head" && (
-                        <div className="coach-award">👑 最佳主教练候选</div>
-                      )}
+                      {coach.roleKey === "head" && <div className="coach-award">👑 最佳主教练候选</div>}
                     </div>
                   );
                 })}
@@ -1019,62 +1137,39 @@ export default function App() {
                 <input
                   placeholder="日期，例如 2026-04-26"
                   value={coachMatchForm.date}
-                  onChange={(e) =>
-                    setCoachMatchForm({ ...coachMatchForm, date: e.target.value })
-                  }
+                  onChange={(e) => setCoachMatchForm({ ...coachMatchForm, date: e.target.value })}
                 />
 
                 <input
                   placeholder="对手"
                   value={coachMatchForm.opponent}
-                  onChange={(e) =>
-                    setCoachMatchForm({ ...coachMatchForm, opponent: e.target.value })
-                  }
+                  onChange={(e) => setCoachMatchForm({ ...coachMatchForm, opponent: e.target.value })}
                 />
               </div>
 
               <div style={{ marginBottom: "12px" }}>
-                <label
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "var(--sub)",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label style={{ fontSize: "0.8rem", color: "var(--sub)", display: "block", marginBottom: "6px" }}>
                   比赛结果：
                 </label>
 
                 <div className="result-btn-group">
                   <button
-                    className={`result-btn ${
-                      coachMatchForm.result === "win" ? "selected-win" : ""
-                    }`}
-                    onClick={() =>
-                      setCoachMatchForm({ ...coachMatchForm, result: "win" })
-                    }
+                    className={`result-btn ${coachMatchForm.result === "win" ? "selected-win" : ""}`}
+                    onClick={() => setCoachMatchForm({ ...coachMatchForm, result: "win" })}
                   >
                     胜
                   </button>
 
                   <button
-                    className={`result-btn ${
-                      coachMatchForm.result === "draw" ? "selected-draw" : ""
-                    }`}
-                    onClick={() =>
-                      setCoachMatchForm({ ...coachMatchForm, result: "draw" })
-                    }
+                    className={`result-btn ${coachMatchForm.result === "draw" ? "selected-draw" : ""}`}
+                    onClick={() => setCoachMatchForm({ ...coachMatchForm, result: "draw" })}
                   >
                     平
                   </button>
 
                   <button
-                    className={`result-btn ${
-                      coachMatchForm.result === "loss" ? "selected-loss" : ""
-                    }`}
-                    onClick={() =>
-                      setCoachMatchForm({ ...coachMatchForm, result: "loss" })
-                    }
+                    className={`result-btn ${coachMatchForm.result === "loss" ? "selected-loss" : ""}`}
+                    onClick={() => setCoachMatchForm({ ...coachMatchForm, result: "loss" })}
                   >
                     负
                   </button>
@@ -1084,10 +1179,19 @@ export default function App() {
               <textarea
                 placeholder="执教备注，例如：临场调整有效、阵型执行稳定"
                 value={coachMatchForm.note}
-                onChange={(e) =>
-                  setCoachMatchForm({ ...coachMatchForm, note: e.target.value })
-                }
+                style={{ minHeight: "130px", width: "100%" }}
+                onChange={(e) => setCoachMatchForm({ ...coachMatchForm, note: e.target.value })}
               />
+
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--sub)", marginBottom: "12px" }}>
+                <input
+                  type="checkbox"
+                  checked={coachMatchForm.isMarked}
+                  style={{ width: "auto" }}
+                  onChange={(e) => setCoachMatchForm({ ...coachMatchForm, isMarked: e.target.checked })}
+                />
+                标记为关键执教记录
+              </label>
 
               <button className="primary-btn" onClick={addCoachMatchRecord}>
                 添加执教记录
@@ -1096,7 +1200,10 @@ export default function App() {
 
             <div className="panel wide">
               <h2>{selectedCoach.name} 的执教记录</h2>
-              <CoachMatchTable matches={selectedCoach.matches} />
+              <CoachMatchTable
+                matches={selectedCoach.matches}
+                onToggleMark={(index) => toggleCoachMatchMark(selectedCoach.name, index)}
+              />
             </div>
 
             <div className="panel wide">
@@ -1117,7 +1224,7 @@ export default function App() {
   );
 }
 
-function MatchTable({ matches }) {
+function MatchTable({ matches, onToggleMark }) {
   if (!matches.length) {
     return (
       <div className="empty-match">
@@ -1133,6 +1240,7 @@ function MatchTable({ matches }) {
       <table>
         <thead>
           <tr>
+            <th>标记</th>
             <th>日期</th>
             <th>对手</th>
             <th>结果</th>
@@ -1141,7 +1249,7 @@ function MatchTable({ matches }) {
             <th>评分</th>
             <th>能力变化</th>
             <th>赛后能力</th>
-            <th>备注</th>
+            <th style={{ minWidth: "260px" }}>备注</th>
           </tr>
         </thead>
         <tbody>
@@ -1167,7 +1275,12 @@ function MatchTable({ matches }) {
             const abilityChange = Number(m.abilityChange || 0);
 
             return (
-              <tr key={`${m.date}-${i}`}>
+              <tr key={`${m.date}-${i}`} style={m.isMarked ? { background: "rgba(215, 181, 109, 0.08)" } : undefined}>
+                <td>
+                  <button className={m.isMarked ? "mark-btn active" : "mark-btn"} onClick={() => onToggleMark?.(i)}>
+                    {m.isMarked ? "★" : "☆"}
+                  </button>
+                </td>
                 <td>{m.date}</td>
                 <td>{m.opponent}</td>
                 <td>
@@ -1179,18 +1292,14 @@ function MatchTable({ matches }) {
                 <td>
                   <span
                     className={
-                      abilityChange > 0
-                        ? "ability-up"
-                        : abilityChange < 0
-                          ? "ability-down"
-                          : "ability-flat"
+                      abilityChange > 0 ? "ability-up" : abilityChange < 0 ? "ability-down" : "ability-flat"
                     }
                   >
                     {abilityChange > 0 ? `+${abilityChange}` : abilityChange}
                   </span>
                 </td>
                 <td>{m.abilityAfterMatch || "-"}</td>
-                <td>{m.note}</td>
+                <td style={{ minWidth: "260px", whiteSpace: "normal" }}>{m.note}</td>
               </tr>
             );
           })}
@@ -1200,7 +1309,7 @@ function MatchTable({ matches }) {
   );
 }
 
-function CoachMatchTable({ matches }) {
+function CoachMatchTable({ matches, onToggleMark }) {
   if (!matches.length) {
     return (
       <div className="empty-match">
@@ -1216,10 +1325,11 @@ function CoachMatchTable({ matches }) {
       <table>
         <thead>
           <tr>
+            <th>标记</th>
             <th>日期</th>
             <th>对手</th>
             <th>结果</th>
-            <th>备注</th>
+            <th style={{ minWidth: "320px" }}>备注</th>
           </tr>
         </thead>
 
@@ -1244,13 +1354,18 @@ function CoachMatchTable({ matches }) {
             }
 
             return (
-              <tr key={`${m.date}-${i}`}>
+              <tr key={`${m.date}-${i}`} style={m.isMarked ? { background: "rgba(215, 181, 109, 0.08)" } : undefined}>
+                <td>
+                  <button className={m.isMarked ? "mark-btn active" : "mark-btn"} onClick={() => onToggleMark?.(i)}>
+                    {m.isMarked ? "★" : "☆"}
+                  </button>
+                </td>
                 <td>{m.date}</td>
                 <td>{m.opponent}</td>
                 <td>
                   <span className={`result-badge ${resultClass}`}>{resultLabel}</span>
                 </td>
-                <td>{m.note}</td>
+                <td style={{ minWidth: "320px", whiteSpace: "normal" }}>{m.note}</td>
               </tr>
             );
           })}
@@ -1418,22 +1533,39 @@ function AwardCard({ title, icon, name, value, desc }) {
   );
 }
 
+function AwardSelectPanel({ title, value, options, autoName, onChange }) {
+  return (
+    <div className="panel">
+      <h2>{title}人选</h2>
+      <p style={{ marginBottom: "10px" }}>自动推荐：{autoName}</p>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">使用自动推荐</option>
+        {options.map((item) => (
+          <option key={item.name} value={item.name}>
+            {item.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function PlayerAwardBadges({ player, awardStats }) {
   const awards = [];
 
-  if (awardStats.topScorer?.name === player.name && awardStats.topScorer.goals > 0) {
+  if (awardStats.topScorer?.name === player.name && totalStat(player.matches, "goals") > 0) {
     awards.push({
       icon: "⚽",
       title: "射手王",
-      desc: `${awardStats.topScorer.goals} 球`,
+      desc: `${totalStat(player.matches, "goals")} 球`,
     });
   }
 
-  if (awardStats.assistKing?.name === player.name && awardStats.assistKing.assists > 0) {
+  if (awardStats.assistKing?.name === player.name && totalStat(player.matches, "assists") > 0) {
     awards.push({
       icon: "🎯",
       title: "助攻王",
-      desc: `${awardStats.assistKing.assists} 助攻`,
+      desc: `${totalStat(player.matches, "assists")} 助攻`,
     });
   }
 
@@ -1441,7 +1573,7 @@ function PlayerAwardBadges({ player, awardStats }) {
     awards.push({
       icon: "🛡️",
       title: "最佳防守队员",
-      desc: "防守综合评分最高",
+      desc: "防守综合评分最高 / 手动指定",
     });
   }
 
