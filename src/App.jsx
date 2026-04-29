@@ -188,9 +188,7 @@ const initialPlayers = [
   },
 ];
 
-const categories = ["前场", "中场", "后卫"];
-
-const coachData = [
+const initialCoachData = [
   {
     name: "章兮兮",
     role: "主教练",
@@ -198,6 +196,7 @@ const coachData = [
     desc: "负责整体战术、首发选择、临场调整与比赛决策。",
     initials: "章",
     focus: "整体战术 / 首发安排 / 比赛指挥",
+    matches: [],
   },
   {
     name: "陆梓鑫",
@@ -206,6 +205,7 @@ const coachData = [
     desc: "负责训练组织、球员沟通、边路战术执行反馈。",
     initials: "陆",
     focus: "训练组织 / 球员沟通 / 执行反馈",
+    matches: [],
   },
   {
     name: "杨寒",
@@ -214,8 +214,11 @@ const coachData = [
     desc: "负责数据记录、赛后复盘、阵容建议与战术辅助。",
     initials: "杨",
     focus: "数据分析 / 赛后复盘 / 战术辅助",
+    matches: [],
   },
 ];
+
+const categories = ["前场", "中场", "后卫"];
 
 function averageRating(matches) {
   if (!matches.length) return "-";
@@ -230,6 +233,35 @@ function totalStat(matches, key) {
 function getNumberValue(value) {
   if (value === "-" || value === undefined || value === null) return 0;
   return Number(value);
+}
+
+function clampAbility(value) {
+  if (value > 99) return 99;
+  if (value < 60) return 60;
+  return value;
+}
+
+function calculateAbilityChange(match) {
+  let change = 0;
+
+  const rating = Number(match.rating || 0);
+  const goals = Number(match.goals || 0);
+  const assists = Number(match.assists || 0);
+
+  if (rating >= 9) change += 2;
+  else if (rating >= 8) change += 1;
+  else if (rating < 5) change -= 1;
+
+  if (goals >= 3) change += 1;
+  if (assists >= 2) change += 1;
+
+  if (match.result === "win" && rating >= 7.5) change += 1;
+  if (match.result === "loss" && rating < 6) change -= 1;
+
+  if (change > 2) change = 2;
+  if (change < -2) change = -2;
+
+  return change;
 }
 
 function getStatus(player) {
@@ -280,8 +312,18 @@ export default function App() {
     }
   });
 
+  const [coaches, setCoaches] = useState(() => {
+    try {
+      const saved = localStorage.getItem("team-v8-coaches");
+      return saved ? JSON.parse(saved) : initialCoachData;
+    } catch {
+      return initialCoachData;
+    }
+  });
+
   const [view, setView] = useState("players");
   const [selectedName, setSelectedName] = useState("陆梓鑫");
+  const [selectedCoachName, setSelectedCoachName] = useState("章兮兮");
 
   const [matchForm, setMatchForm] = useState({
     date: "",
@@ -293,6 +335,13 @@ export default function App() {
     note: "",
   });
 
+  const [coachMatchForm, setCoachMatchForm] = useState({
+    date: "",
+    opponent: "",
+    result: "",
+    note: "",
+  });
+
   useEffect(() => {
     try {
       localStorage.setItem("team-v8-data", JSON.stringify(players));
@@ -301,7 +350,16 @@ export default function App() {
     }
   }, [players]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("team-v8-coaches", JSON.stringify(coaches));
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [coaches]);
+
   const selectedPlayer = players.find((p) => p.name === selectedName) || players[0];
+  const selectedCoach = coaches.find((coach) => coach.name === selectedCoachName) || coaches[0];
 
   const allMatches = players.flatMap((p) => p.matches);
   const resultsCount = countResults(allMatches);
@@ -375,6 +433,24 @@ export default function App() {
     const coachWinRate =
       coachMatches > 0 ? `${((teamResult.wins / coachMatches) * 100).toFixed(0)}%` : "-";
 
+    const coachRanking = [...coaches]
+      .map((coach) => {
+        const record = countResults(coach.matches);
+        const totalMatches = coach.matches.length;
+        const winRateNumber = totalMatches > 0 ? record.wins / totalMatches : 0;
+
+        return {
+          ...coach,
+          totalMatches,
+          wins: record.wins,
+          draws: record.draws,
+          losses: record.losses,
+          winRateNumber,
+          winRateText: totalMatches > 0 ? `${(winRateNumber * 100).toFixed(0)}%` : "-",
+        };
+      })
+      .sort((a, b) => b.winRateNumber - a.winRateNumber || b.totalMatches - a.totalMatches);
+
     return {
       playerStats,
       topScorer,
@@ -383,9 +459,10 @@ export default function App() {
       coachMatches,
       coachWinRate,
       teamResult,
-      bestCoach: coachData[0],
+      bestCoach: coachRanking[0] || coaches[0],
+      coachRanking,
     };
-  }, [players]);
+  }, [players, coaches]);
 
   const bestLineup = {
     前场: [...players]
@@ -423,12 +500,27 @@ export default function App() {
       note: matchForm.note || "暂无备注",
     };
 
+    const abilityChange = calculateAbilityChange(newMatch);
+
     setPlayers((old) =>
-      old.map((p) =>
-        p.name === selectedPlayer.name
-          ? { ...p, matches: [...p.matches, newMatch] }
-          : p
-      )
+      old.map((p) => {
+        if (p.name !== selectedPlayer.name) return p;
+
+        const newAbility = clampAbility(p.ability + abilityChange);
+
+        return {
+          ...p,
+          ability: newAbility,
+          matches: [
+            ...p.matches,
+            {
+              ...newMatch,
+              abilityChange,
+              abilityAfterMatch: newAbility,
+            },
+          ],
+        };
+      })
     );
 
     setMatchForm({
@@ -442,12 +534,46 @@ export default function App() {
     });
   }, [matchForm, selectedPlayer.name]);
 
+  const addCoachMatchRecord = useCallback(() => {
+    if (!coachMatchForm.date || !coachMatchForm.opponent || !coachMatchForm.result) {
+      alert("请至少填写日期、对手和比赛结果");
+      return;
+    }
+
+    const newCoachMatch = {
+      date: coachMatchForm.date,
+      opponent: coachMatchForm.opponent,
+      result: coachMatchForm.result,
+      note: coachMatchForm.note || "暂无备注",
+    };
+
+    setCoaches((old) =>
+      old.map((coach) =>
+        coach.name === selectedCoach.name
+          ? {
+              ...coach,
+              matches: [...coach.matches, newCoachMatch],
+            }
+          : coach
+      )
+    );
+
+    setCoachMatchForm({
+      date: "",
+      opponent: "",
+      result: "",
+      note: "",
+    });
+  }, [coachMatchForm, selectedCoach.name]);
+
   const resetData = useCallback(() => {
     const ok = window.confirm("确认清空所有比赛记录并恢复初始数据吗？");
     if (!ok) return;
 
     localStorage.removeItem("team-v8-data");
+    localStorage.removeItem("team-v8-coaches");
     setPlayers(initialPlayers);
+    setCoaches(initialCoachData);
   }, []);
 
   const navItems = [
@@ -478,7 +604,7 @@ export default function App() {
         <header className="fm-topbar">
           <div>
             <h1>球队内部战术中心 V8 🔥</h1>
-            <p>球星卡 / 比赛记录 / 阵容推荐 / 教练系统 / 奖项系统</p>
+            <p>球星卡 / 比赛记录 / 阵容推荐 / 教练系统 / 奖项系统 / 能力成长</p>
           </div>
           <div className="top-actions">
             <span>本地保存</span>
@@ -632,6 +758,16 @@ export default function App() {
                 <div className="season-row">
                   <span>场均评分</span>
                   <b>{averageRating(selectedPlayer.matches)}</b>
+                </div>
+                <div className="season-row">
+                  <span>最近能力变化</span>
+                  <b>
+                    {selectedPlayer.matches.length
+                      ? Number(selectedPlayer.matches[selectedPlayer.matches.length - 1].abilityChange || 0) > 0
+                        ? `+${selectedPlayer.matches[selectedPlayer.matches.length - 1].abilityChange}`
+                        : selectedPlayer.matches[selectedPlayer.matches.length - 1].abilityChange || 0
+                      : "-"}
+                  </b>
                 </div>
               </section>
             </aside>
@@ -799,8 +935,8 @@ export default function App() {
               title="最佳主教练"
               icon="👑"
               name={awardStats.bestCoach?.name || "-"}
-              value={`执教 ${awardStats.coachMatches} 场`}
-              desc={`胜率 ${awardStats.coachWinRate}`}
+              value={`执教 ${awardStats.bestCoach?.totalMatches || 0} 场`}
+              desc={`胜率 ${awardStats.bestCoach?.winRateText || "-"}`}
             />
           </section>
         )}
@@ -809,37 +945,158 @@ export default function App() {
           <section className="dashboard-grid">
             <div className="panel wide">
               <h2>教练组</h2>
+
               <div className="coach-grid">
-                {coachData.map((coach) => (
-                  <div
-                    key={coach.name}
-                    className={coach.roleKey === "head" ? "coach-card head-coach" : "coach-card"}
-                  >
-                    {coach.roleKey === "head" && <div className="coach-badge-head">👑</div>}
-                    <div className="coach-avatar">{coach.initials}</div>
-                    <div className="coach-name">{coach.name}</div>
-                    <div className="coach-role">{coach.role}</div>
-                    <div className="coach-desc">{coach.desc}</div>
+                {coaches.map((coach) => {
+                  const record = countResults(coach.matches);
+                  const totalMatches = coach.matches.length;
+                  const winRate =
+                    totalMatches > 0
+                      ? `${((record.wins / totalMatches) * 100).toFixed(0)}%`
+                      : "-";
 
-                    <div className="coach-record">
-                      <span>职责</span>
-                      <strong>{coach.focus}</strong>
+                  return (
+                    <div
+                      key={coach.name}
+                      className={
+                        coach.roleKey === "head"
+                          ? "coach-card head-coach"
+                          : "coach-card"
+                      }
+                      onClick={() => setSelectedCoachName(coach.name)}
+                      style={{
+                        cursor: "pointer",
+                        borderColor:
+                          selectedCoachName === coach.name ? "var(--accent)" : undefined,
+                      }}
+                    >
+                      {coach.roleKey === "head" && <div className="coach-badge-head">👑</div>}
+
+                      <div className="coach-avatar">{coach.initials}</div>
+                      <div className="coach-name">{coach.name}</div>
+                      <div className="coach-role">{coach.role}</div>
+                      <div className="coach-desc">{coach.desc}</div>
+
+                      <div className="coach-record">
+                        <span>职责</span>
+                        <strong>{coach.focus}</strong>
+                      </div>
+
+                      <div className="coach-record">
+                        <span>执教场次</span>
+                        <strong>{totalMatches}</strong>
+                      </div>
+
+                      <div className="coach-record">
+                        <span>当前胜率</span>
+                        <strong>{winRate}</strong>
+                      </div>
+
+                      <div className="coach-record">
+                        <span>胜 / 平 / 负</span>
+                        <strong>
+                          {record.wins} / {record.draws} / {record.losses}
+                        </strong>
+                      </div>
+
+                      {coach.roleKey === "head" && (
+                        <div className="coach-award">👑 最佳主教练候选</div>
+                      )}
                     </div>
-
-                    <div className="coach-record">
-                      <span>执教场次</span>
-                      <strong>{awardStats.coachMatches}</strong>
-                    </div>
-
-                    <div className="coach-record">
-                      <span>当前胜率</span>
-                      <strong>{awardStats.coachWinRate}</strong>
-                    </div>
-
-                    {coach.roleKey === "head" && <div className="coach-award">👑 最佳主教练候选</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+            </div>
+
+            <div className="panel wide">
+              <h2>添加教练执教记录</h2>
+              <p style={{ marginBottom: "12px", color: "var(--sub)" }}>
+                当前教练：
+                <strong style={{ color: "#fff" }}> {selectedCoach.name}</strong>
+              </p>
+
+              <div className="form-grid">
+                <input
+                  placeholder="日期，例如 2026-04-26"
+                  value={coachMatchForm.date}
+                  onChange={(e) =>
+                    setCoachMatchForm({ ...coachMatchForm, date: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="对手"
+                  value={coachMatchForm.opponent}
+                  onChange={(e) =>
+                    setCoachMatchForm({ ...coachMatchForm, opponent: e.target.value })
+                  }
+                />
+              </div>
+
+              <div style={{ marginBottom: "12px" }}>
+                <label
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "var(--sub)",
+                    display: "block",
+                    marginBottom: "6px",
+                  }}
+                >
+                  比赛结果：
+                </label>
+
+                <div className="result-btn-group">
+                  <button
+                    className={`result-btn ${
+                      coachMatchForm.result === "win" ? "selected-win" : ""
+                    }`}
+                    onClick={() =>
+                      setCoachMatchForm({ ...coachMatchForm, result: "win" })
+                    }
+                  >
+                    胜
+                  </button>
+
+                  <button
+                    className={`result-btn ${
+                      coachMatchForm.result === "draw" ? "selected-draw" : ""
+                    }`}
+                    onClick={() =>
+                      setCoachMatchForm({ ...coachMatchForm, result: "draw" })
+                    }
+                  >
+                    平
+                  </button>
+
+                  <button
+                    className={`result-btn ${
+                      coachMatchForm.result === "loss" ? "selected-loss" : ""
+                    }`}
+                    onClick={() =>
+                      setCoachMatchForm({ ...coachMatchForm, result: "loss" })
+                    }
+                  >
+                    负
+                  </button>
+                </div>
+              </div>
+
+              <textarea
+                placeholder="执教备注，例如：临场调整有效、阵型执行稳定"
+                value={coachMatchForm.note}
+                onChange={(e) =>
+                  setCoachMatchForm({ ...coachMatchForm, note: e.target.value })
+                }
+              />
+
+              <button className="primary-btn" onClick={addCoachMatchRecord}>
+                添加执教记录
+              </button>
+            </div>
+
+            <div className="panel wide">
+              <h2>{selectedCoach.name} 的执教记录</h2>
+              <CoachMatchTable matches={selectedCoach.matches} />
             </div>
 
             <div className="panel wide">
@@ -882,9 +1139,90 @@ function MatchTable({ matches }) {
             <th>进球</th>
             <th>助攻</th>
             <th>评分</th>
+            <th>能力变化</th>
+            <th>赛后能力</th>
             <th>备注</th>
           </tr>
         </thead>
+        <tbody>
+          {matches.map((m, i) => {
+            let resultLabel = "-";
+            let resultClass = "";
+
+            if (m.result === "win") {
+              resultLabel = "胜";
+              resultClass = "win";
+            }
+
+            if (m.result === "draw") {
+              resultLabel = "平";
+              resultClass = "draw";
+            }
+
+            if (m.result === "loss") {
+              resultLabel = "负";
+              resultClass = "loss";
+            }
+
+            const abilityChange = Number(m.abilityChange || 0);
+
+            return (
+              <tr key={`${m.date}-${i}`}>
+                <td>{m.date}</td>
+                <td>{m.opponent}</td>
+                <td>
+                  <span className={`result-badge ${resultClass}`}>{resultLabel}</span>
+                </td>
+                <td>{m.goals}</td>
+                <td>{m.assists}</td>
+                <td>{m.rating}</td>
+                <td>
+                  <span
+                    className={
+                      abilityChange > 0
+                        ? "ability-up"
+                        : abilityChange < 0
+                          ? "ability-down"
+                          : "ability-flat"
+                    }
+                  >
+                    {abilityChange > 0 ? `+${abilityChange}` : abilityChange}
+                  </span>
+                </td>
+                <td>{m.abilityAfterMatch || "-"}</td>
+                <td>{m.note}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CoachMatchTable({ matches }) {
+  if (!matches.length) {
+    return (
+      <div className="empty-match">
+        <div className="empty-icon">📋</div>
+        <h4>暂无执教记录</h4>
+        <p>可在教练组页面添加比赛记录。</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>对手</th>
+            <th>结果</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+
         <tbody>
           {matches.map((m, i) => {
             let resultLabel = "-";
@@ -912,9 +1250,6 @@ function MatchTable({ matches }) {
                 <td>
                   <span className={`result-badge ${resultClass}`}>{resultLabel}</span>
                 </td>
-                <td>{m.goals}</td>
-                <td>{m.assists}</td>
-                <td>{m.rating}</td>
                 <td>{m.note}</td>
               </tr>
             );
