@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-const STORAGE_KEY = "fm_tactics_positions";
-
 function buildInitialPositions(bestLineup, players) {
   const lineup = [];
   bestLineup["前场"].forEach((p, i) => lineup.push({ ...p, x: 25 + i * 25, y: 18 }));
@@ -12,30 +10,22 @@ function buildInitialPositions(bestLineup, players) {
   return lineup;
 }
 
-function LineupPage({ bestLineup, players }) {
+function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
   const pitchRef = useRef(null);
   const [draggingName, setDraggingName] = useState("");
   const initialPositions = useMemo(() => buildInitialPositions(bestLineup, players), [bestLineup, players]);
-  const [positions, setPositions] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      return saved.length ? saved : initialPositions;
-    } catch {
-      return initialPositions;
-    }
-  });
-
   useEffect(() => {
+    if (!positions.length) {
+      setPositions(initialPositions);
+      return;
+    }
     const currentNames = new Set(positions.map((player) => player.name));
     const missing = initialPositions.filter((player) => !currentNames.has(player.name));
     if (missing.length) setPositions((current) => [...current, ...missing]);
   }, [initialPositions]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
-  }, [positions]);
-
   const movePlayer = (event, name) => {
+    if (!isAdmin) return;
     const pitch = pitchRef.current;
     if (!pitch) return;
     const rect = pitch.getBoundingClientRect();
@@ -45,6 +35,7 @@ function LineupPage({ bestLineup, players }) {
   };
 
   const startDragging = (event, name) => {
+    if (!isAdmin) return;
     event.preventDefault();
     event.stopPropagation();
     pitchRef.current?.setPointerCapture(event.pointerId);
@@ -58,12 +49,12 @@ function LineupPage({ bestLineup, players }) {
         <div>
           <span className="home-kicker">TACTICS BOARD</span>
           <h2>简易战术板</h2>
-          <p>按住球员并拖动到目标位置，阵型会自动保存在当前设备。</p>
+          <p>{isAdmin ? "按住球员并拖动到目标位置，阵型会自动同步到云端。" : "访客可以查看当前战术阵型。"}</p>
         </div>
-        <button className="small-ghost-btn" onClick={() => setPositions(initialPositions)}>重置推荐阵型</button>
+        {isAdmin && <button className="small-ghost-btn" onClick={() => setPositions(initialPositions)}>重置推荐阵型</button>}
       </div>
 
-      <div className="panel wide">
+      {isAdmin && <div className="panel wide">
         <div
           ref={pitchRef}
           className={`tactics-pitch ${draggingName ? "is-dragging" : ""}`}
@@ -99,7 +90,7 @@ function LineupPage({ bestLineup, players }) {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       <div className="panel wide">
         <h2>替补与其他球员</h2>

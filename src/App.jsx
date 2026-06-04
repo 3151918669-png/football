@@ -242,6 +242,7 @@ function App() {
   const [manualAwards, setManualAwards] = useState(() => safeGetLocalStorage("fm_manualAwards", { topScorer: "", assistKing: "", bestDefender: "", bestCoach: "" }));
   const [nextMatch, setNextMatch] = useState(() => safeGetLocalStorage("fm_nextMatch", { opponent: "", date: "", time: "", stadium: "", type: "友谊赛", lineup: "", note: "" }));
   const [contentEdits, setContentEdits] = useState(() => safeGetLocalStorage("fm_contentEdits", {}));
+  const [tacticsPositions, setTacticsPositions] = useState(() => safeGetLocalStorage("fm_tacticsPositions", []));
 
   // --- 云端状态 ---
   const [cloudStatus, setCloudStatus] = useState("未连接");
@@ -256,6 +257,7 @@ function App() {
   const [selectedCoachName, setSelectedCoachName] = useState(coaches[0]?.name || "");
   const [isAdmin, setIsAdmin] = useState(() => safeGetLocalStorage("fm_isAdmin", false));
   const [showLogin, setShowLogin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -300,11 +302,12 @@ function App() {
   useEffect(() => { safeSetLocalStorage("fm_manualAwards", manualAwards); }, [manualAwards]);
   useEffect(() => { safeSetLocalStorage("fm_nextMatch", nextMatch); }, [nextMatch]);
   useEffect(() => { safeSetLocalStorage("fm_contentEdits", contentEdits); }, [contentEdits]);
+  useEffect(() => { safeSetLocalStorage("fm_tacticsPositions", tacticsPositions); }, [tacticsPositions]);
   useEffect(() => { safeSetLocalStorage("fm_isAdmin", isAdmin); }, [isAdmin]);
 
   /* ===== 云端：构建/应用数据载荷 ===== */
   const buildTeamPayload = () => {
-    return { players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, savedAt: new Date().toISOString() };
+    return { players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, savedAt: new Date().toISOString() };
   };
 
   const applyTeamPayload = (payload) => {
@@ -316,6 +319,7 @@ function App() {
       if (payload.manualAwards) setManualAwards(payload.manualAwards);
       if (payload.nextMatch) setNextMatch(payload.nextMatch);
       if (payload.contentEdits) setContentEdits(payload.contentEdits);
+      if (payload.tacticsPositions) setTacticsPositions(payload.tacticsPositions);
       return true;
     } catch (e) {
       console.error("应用数据失败:", e);
@@ -386,7 +390,18 @@ function App() {
       upsertCloudData();
     }, 900);
     return () => clearTimeout(timer);
-  }, [players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, isAdmin, cloudReady]);
+  }, [players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, isAdmin, cloudReady]);
+
+  /* ===== Supabase Auth 会话 ===== */
+  useEffect(() => {
+    supabaseClient.auth.getSession().then(({ data }) => {
+      if (data.session) setIsAdmin(true);
+    });
+    const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      if (session) setIsAdmin(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   /* ===== computed 数据 ===== */
   const seasonOptions = useMemo(() => {
@@ -949,7 +964,24 @@ function App() {
   };
 
   /* ===== 管理员登录 ===== */
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
+    if (loginEmail.trim()) {
+      setLoginError("");
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      if (error) {
+        setLoginError("Supabase 登录失败：" + error.message);
+        return;
+      }
+      setIsAdmin(true);
+      setShowLogin(false);
+      setLoginEmail("");
+      setLoginPassword("");
+      return;
+    }
+
     if (loginPassword === ADMIN_PASSWORD) {
       setIsAdmin(true);
       setShowLogin(false);
@@ -960,7 +992,8 @@ function App() {
     }
   };
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    await supabaseClient.auth.signOut();
     setIsAdmin(false);
     setShowLogin(false);
     setLoginPassword("");
@@ -1077,10 +1110,16 @@ function App() {
                 </div>
                 <button className="login-close-btn" onClick={() => setShowLogin(false)}>×</button>
               </div>
-              <label className="login-label">管理员密码</label>
+              <label className="login-label">Supabase 管理员账户</label>
+              <input
+                type="email"
+                placeholder="Supabase 管理员邮箱（推荐）"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
               <input
                 type="password"
-                placeholder="请输入密码"
+                placeholder="请输入管理员密码"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAdminLogin(); }}
@@ -1092,7 +1131,7 @@ function App() {
                 <button className="primary-btn" onClick={handleAdminLogin}>登录</button>
               </div>
               <div className="login-tip">
-                <small>提示：默认密码为 football2026。登录后所有操作会获得管理员权限，数据修改会自动同步到云端。</small>
+                <small>推荐使用 Supabase 管理员邮箱登录。邮箱留空时暂时兼容旧管理员密码。</small>
               </div>
             </div>
           </div>
@@ -1235,7 +1274,13 @@ function App() {
         )}
 
         {currentView === "lineup" && (
-          <LineupPage bestLineup={bestLineup} players={players} />
+          <LineupPage
+            bestLineup={bestLineup}
+            players={players}
+            positions={tacticsPositions}
+            setPositions={setTacticsPositions}
+            isAdmin={isAdmin}
+          />
         )}
 
         {currentView === "rankings" && (
