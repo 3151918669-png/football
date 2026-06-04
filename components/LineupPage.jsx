@@ -1,91 +1,114 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-function FMPitch({ bestLineup, players }) {
-  const gk = players.find((p) => p.position === "GK") || null;
-  const allPositions = [];
-  bestLineup["前场"].forEach((p, i) => allPositions.push({ ...p, x: 25 + i * 25, y: 18, cls: "forward" }));
-  bestLineup["中场"].forEach((p, i) => allPositions.push({ ...p, x: 30 + i * 20, y: 42, cls: "midfield" }));
-  bestLineup["后卫"].filter((p) => p.position !== "GK").slice(0, 4).forEach((p, i) => allPositions.push({ ...p, x: 20 + i * 20, y: 72, cls: "defender" }));
-  if (gk) allPositions.push({ ...gk, x: 50, y: 90, cls: "gk" });
+const STORAGE_KEY = "fm_tactics_positions";
 
-  return (
-    <div className="fm-pitch-container">
-      <div className="fm-pitch">
-        <div className="pitch-area-top"></div>
-        <div className="pitch-area-bottom"></div>
-        <div className="pitch-goal-top"></div>
-        <div className="pitch-goal-bottom"></div>
-        <div className="pitch-center-dot"></div>
-        {allPositions.map((p) => (
-          <div
-            key={p.name}
-            className={`pitch-player ${p.cls}`}
-            style={{ left: `${p.x}%`, top: `${p.y}%` }}
-            title={`${p.name} | ${p.position} | 能力${p.ability}`}
-          >
-            {p.number}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function buildInitialPositions(bestLineup, players) {
+  const lineup = [];
+  bestLineup["前场"].forEach((p, i) => lineup.push({ ...p, x: 25 + i * 25, y: 18 }));
+  bestLineup["中场"].forEach((p, i) => lineup.push({ ...p, x: 30 + i * 20, y: 43 }));
+  bestLineup["后卫"].filter((p) => p.position !== "GK").slice(0, 4).forEach((p, i) => lineup.push({ ...p, x: 20 + i * 20, y: 72 }));
+  const gk = players.find((p) => p.position === "GK");
+  if (gk) lineup.push({ ...gk, x: 50, y: 90 });
+  return lineup;
 }
 
 function LineupPage({ bestLineup, players }) {
+  const pitchRef = useRef(null);
+  const [draggingName, setDraggingName] = useState("");
+  const initialPositions = useMemo(() => buildInitialPositions(bestLineup, players), [bestLineup, players]);
+  const [positions, setPositions] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      return saved.length ? saved : initialPositions;
+    } catch {
+      return initialPositions;
+    }
+  });
+
+  useEffect(() => {
+    const currentNames = new Set(positions.map((player) => player.name));
+    const missing = initialPositions.filter((player) => !currentNames.has(player.name));
+    if (missing.length) setPositions((current) => [...current, ...missing]);
+  }, [initialPositions]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+  }, [positions]);
+
+  const movePlayer = (event, name) => {
+    const pitch = pitchRef.current;
+    if (!pitch) return;
+    const rect = pitch.getBoundingClientRect();
+    const x = Math.max(5, Math.min(95, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(5, Math.min(95, ((event.clientY - rect.top) / rect.height) * 100));
+    setPositions((current) => current.map((player) => player.name === name ? { ...player, x, y } : player));
+  };
+
+  const startDragging = (event, name) => {
+    event.preventDefault();
+    event.stopPropagation();
+    pitchRef.current?.setPointerCapture(event.pointerId);
+    setDraggingName(name);
+    movePlayer(event, name);
+  };
+
   return (
-    <section className="dashboard-grid">
-      <div className="panel wide">
-        <div className="section-head-row">
-          <h2>最佳阵容推荐</h2>
-          <span className="roster-count">基于当前球员能力自动生成</span>
+    <section className="dashboard-grid tactics-page">
+      <div className="panel wide tactics-toolbar">
+        <div>
+          <span className="home-kicker">TACTICS BOARD</span>
+          <h2>简易战术板</h2>
+          <p>按住球员并拖动到目标位置，阵型会自动保存在当前设备。</p>
         </div>
-        <p>系统根据各位置能力值自动生成最佳11人阵容。如需调整，请修改对应球员的能力属性。</p>
+        <button className="small-ghost-btn" onClick={() => setPositions(initialPositions)}>重置推荐阵型</button>
       </div>
 
       <div className="panel wide">
-        <h2>阵容布置</h2>
-        <FMPitch bestLineup={bestLineup} players={players} />
+        <div
+          ref={pitchRef}
+          className={`tactics-pitch ${draggingName ? "is-dragging" : ""}`}
+          onPointerMove={(event) => {
+            if (draggingName) movePlayer(event, draggingName);
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+            setDraggingName("");
+          }}
+          onPointerCancel={() => setDraggingName("")}
+          onPointerLeave={(event) => {
+            if (draggingName && event.buttons === 0) setDraggingName("");
+          }}
+        >
+          <div className="tactics-half-line" />
+          <div className="tactics-center-circle" />
+          <div className="tactics-box top" />
+          <div className="tactics-box bottom" />
+          {positions.map((player) => (
+            <button
+              key={player.name}
+              className="tactics-player"
+              style={{ left: `${player.x}%`, top: `${player.y}%` }}
+              onPointerDown={(event) => startDragging(event, player.name)}
+              aria-label={`拖动 ${player.name}`}
+            >
+              <span>{player.number}</span>
+              <strong>{player.name}</strong>
+              <small>{player.position}</small>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="panel wide">
-        <h2>阵容详情</h2>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>位置</th>
-                <th>号码</th>
-                <th>姓名</th>
-                <th>位置</th>
-                <th>能力</th>
-                <th>角色</th>
-              </tr>
-            </thead>
-            <tbody>
-              {["前场", "中场", "后卫"].map((group) =>
-                bestLineup[group].map((player) => (
-                  <tr key={player.name}>
-                    <td><span className="result-badge win">{group}</span></td>
-                    <td>{player.number}</td>
-                    <td><strong>{player.name}</strong></td>
-                    <td>{player.position}</td>
-                    <td><span className="ability-up">{player.ability}</span></td>
-                    <td>{player.role}</td>
-                  </tr>
-                ))
-              )}
-              {players.find((p) => p.position === "GK") && (
-                <tr key={players.find((p) => p.position === "GK").name}>
-                  <td><span className="result-badge win">门将</span></td>
-                  <td>{players.find((p) => p.position === "GK").number}</td>
-                  <td><strong>{players.find((p) => p.position === "GK").name}</strong></td>
-                  <td>GK</td>
-                  <td><span className="ability-up">{players.find((p) => p.position === "GK").ability}</span></td>
-                  <td>{players.find((p) => p.position === "GK").role}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <h2>替补与其他球员</h2>
+        <div className="tactics-bench">
+          {players.filter((player) => !positions.some((position) => position.name === player.name)).map((player) => (
+            <button key={player.name} onClick={() => setPositions((current) => [...current, { ...player, x: 50, y: 50 }])}>
+              #{player.number} {player.name} · {player.position}
+            </button>
+          ))}
         </div>
       </div>
     </section>

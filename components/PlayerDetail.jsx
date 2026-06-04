@@ -1,4 +1,5 @@
 import React from "react";
+import ImageDropzone from "./ImageDropzone";
 
 const SUPABASE_URL = "https://viwfabtfdhoaoyqmkyxi.supabase.co";
 const BUCKET = "player-photos";
@@ -404,12 +405,6 @@ function AdminEditPanel({
     onUpdateAttributes?.({ [key]: clamp(value) });
   };
 
-  const uploadFile = (handler) => (e) => {
-    const file = e.target.files?.[0];
-    if (file && handler) handler(file);
-    e.target.value = "";
-  };
-
   return (
     <section className="panel wide">
       <div className="section-head-row">
@@ -478,32 +473,9 @@ function AdminEditPanel({
         ))}
       </div>
 
-      <div className="player-photo-upload-block">
-        <div>
-          <h3>证件照</h3>
-          <p>上传到 Storage / players 文件夹，用于名单和详情左侧头像。</p>
-        </div>
-        <label className="upload-btn">
-          上传/替换证件照
-          <input type="file" accept="image/*" onChange={uploadFile(onUploadPhoto)} />
-        </label>
-        <button className="small-ghost-btn" type="button" onClick={onDeletePhoto}>
-          删除证件照
-        </button>
-      </div>
-
-      <div className="player-photo-upload-block">
-        <div>
-          <h3>球星卡</h3>
-          <p>上传到 Storage / cards 文件夹，用于雷达图左侧大图。</p>
-        </div>
-        <label className="upload-btn">
-          上传/替换球星卡
-          <input type="file" accept="image/*" onChange={uploadFile(onUploadCard)} />
-        </label>
-        <button className="small-ghost-btn" type="button" onClick={onDeleteCard}>
-          删除球星卡
-        </button>
+      <div className="image-upload-grid">
+        <ImageDropzone title="证件照" description="点击选择或拖入图片即可替换" value={player.photo} onUpload={onUploadPhoto} onDelete={onDeletePhoto} />
+        <ImageDropzone title="球星卡" description="点击选择或拖入竖版球星卡" value={player.cardImage} onUpload={onUploadCard} onDelete={onDeleteCard} fit="contain" />
       </div>
     </section>
   );

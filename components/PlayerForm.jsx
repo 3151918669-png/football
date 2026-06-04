@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import ImageDropzone from "./ImageDropzone";
 
 function PlayerForm({
   playerForm,
@@ -286,83 +287,25 @@ function PlayerForm({
         disabled={loading}
       />
 
-      <div className="player-photo-upload-block roster-upload-block">
-        <div>
-          <h3>证件照 / 半身照</h3>
-          <p>上传到 Supabase Storage 的 players 文件夹，用于球队名单和个人详情左侧头像。</p>
-        </div>
-
-        <label className="upload-btn">
-          {uploadingPhoto ? "上传中..." : "上传证件照"}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handlePhotoFile(file);
-              e.target.value = "";
-            }}
-            disabled={loading || uploadingPhoto}
-          />
-        </label>
+      <div className="image-upload-grid">
+        <ImageDropzone
+          title="证件照 / 半身照"
+          description="手机可从相册选择，电脑可直接拖入图片"
+          value={playerForm.photo}
+          onUpload={handlePhotoFile}
+          onDelete={onDeletePhoto}
+          uploading={uploadingPhoto}
+        />
+        <ImageDropzone
+          title="球星卡图片"
+          description="建议上传竖版完整球星卡图片"
+          value={playerForm.cardImage}
+          onUpload={handleCardFile}
+          onDelete={onDeleteCard}
+          uploading={uploadingCard}
+          fit="contain"
+        />
       </div>
-
-      {playerForm.photo && (
-        <div className="player-photo-preview portrait-preview roster-form-preview">
-          <img src={playerForm.photo} alt="证件照预览" loading="lazy" decoding="async" />
-          <button
-            className="mark-btn"
-            type="button"
-            onClick={onDeletePhoto}
-            disabled={loading || uploadingPhoto}
-            style={{ width: "auto", padding: "8px 12px" }}
-          >
-            删除证件照
-          </button>
-        </div>
-      )}
-
-      <div className="player-photo-upload-block roster-upload-block">
-        <div>
-          <h3>球星卡图片</h3>
-          <p>上传到 Supabase Storage 的 cards 文件夹，用于球员详情页雷达图左侧的大球星卡。</p>
-        </div>
-
-        <label className="upload-btn">
-          {uploadingCard ? "上传中..." : "上传球星卡"}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleCardFile(file);
-              e.target.value = "";
-            }}
-            disabled={loading || uploadingCard}
-          />
-        </label>
-      </div>
-
-      {playerForm.cardImage && (
-        <div className="player-photo-preview roster-form-preview">
-          <img
-            src={playerForm.cardImage}
-            alt="球星卡预览"
-            loading="lazy"
-            decoding="async"
-            style={{ objectFit: "contain", background: "rgba(0,0,0,0.28)" }}
-          />
-          <button
-            className="mark-btn"
-            type="button"
-            onClick={onDeleteCard}
-            disabled={loading || uploadingCard}
-            style={{ width: "auto", padding: "8px 12px" }}
-          >
-            删除球星卡
-          </button>
-        </div>
-      )}
 
       <button
         className="primary-btn"
