@@ -3,14 +3,42 @@ import React, { useRef, useState } from "react";
 function ImageDropzone({ title, description, value, onUpload, onDelete, uploading = false, fit = "cover" }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
+  const [status, setStatus] = useState("");
+  const [localUploading, setLocalUploading] = useState(false);
 
-  const upload = (file) => {
-    if (file?.type?.startsWith("image/") && onUpload) onUpload(file);
+  const upload = async (file) => {
+    if (!file) return;
+    if (!file.type?.startsWith("image/")) {
+      setStatus("请选择 JPG、PNG、WebP 等图片文件");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setStatus("图片不能超过 8MB");
+      return;
+    }
+    if (!onUpload) {
+      setStatus("上传功能尚未配置");
+      return;
+    }
+
+    try {
+      setLocalUploading(true);
+      setStatus("正在上传到 Supabase...");
+      await onUpload(file);
+      setStatus("上传成功，正在同步云端数据");
+    } catch (error) {
+      setStatus(`上传失败：${error?.message || "请检查 Supabase Storage 配置"}`);
+    } finally {
+      setLocalUploading(false);
+    }
   };
+
+  const isUploading = uploading || localUploading;
 
   return (
     <div
       className={`image-dropzone ${dragging ? "dragging" : ""} ${value ? "has-image" : ""}`}
+      data-content-editor-ignore
       role="button"
       tabIndex={0}
       onClick={() => inputRef.current?.click()}
@@ -47,8 +75,8 @@ function ImageDropzone({ title, description, value, onUpload, onDelete, uploadin
       )}
 
       <div className="image-dropzone-copy">
-        <strong>{uploading ? "正在上传..." : title}</strong>
-        <span>{uploading ? "请稍候，上传完成后会自动保存" : description}</span>
+        <strong>{isUploading ? "正在上传..." : title}</strong>
+        <span>{isUploading ? "请稍候，上传完成后会自动保存" : description}</span>
       </div>
 
       <div className="image-dropzone-actions">
@@ -66,6 +94,7 @@ function ImageDropzone({ title, description, value, onUpload, onDelete, uploadin
           </button>
         )}
       </div>
+      {status && <div className={`image-dropzone-status ${status.includes("失败") ? "error" : ""}`}>{status}</div>}
     </div>
   );
 }

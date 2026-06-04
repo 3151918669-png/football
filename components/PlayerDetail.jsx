@@ -419,6 +419,7 @@ function AdminEditPanel({
           <option value="前场">前场</option>
           <option value="中场">中场</option>
           <option value="后卫">后卫</option>
+          <option value="守门员">守门员</option>
         </select>
         <input placeholder="位置" value={player.position} onChange={(e) => onUpdateField?.("position", e.target.value)} />
         <input placeholder="角色" value={player.role} onChange={(e) => onUpdateField?.("role", e.target.value)} />

@@ -178,6 +178,18 @@ li { margin-bottom: 8px; color: var(--sub); line-height: 1.6; }
 .image-dropzone-copy span,
 .image-dropzone-actions span { color: var(--sub); font-size: 0.78rem; }
 .image-dropzone-actions .small-ghost-btn { margin-top: 7px; }
+.image-dropzone-status {
+  position: relative;
+  z-index: 1;
+  margin-top: 5px;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--green);
+  background: rgba(71, 209, 140, 0.1);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+.image-dropzone-status.error { color: var(--red); background: rgba(255,107,107,0.1); }
 
 .tactics-toolbar {
   display: flex;

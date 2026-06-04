@@ -71,7 +71,11 @@ function PlayerForm({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setPlayerForm({ ...playerForm, [name]: value });
+    setPlayerForm({
+      ...playerForm,
+      [name]: value,
+      ...(name === "category" && value === "守门员" && !playerForm.position ? { position: "GK" } : {}),
+    });
     validateField(name, value);
   };
 
@@ -200,6 +204,7 @@ function PlayerForm({
             <option value="前场">前场</option>
             <option value="中场">中场</option>
             <option value="后卫">后卫</option>
+            <option value="守门员">守门员</option>
           </select>
         </div>
 

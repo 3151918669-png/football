@@ -230,7 +230,7 @@ const initialClubInfo = {
   thirdKitImage: "",
 };
 
-const categories = ["前场", "中场", "后卫"];
+const categories = ["前场", "中场", "后卫", "守门员"];
 
 /* ===== App 主组件 ===== */
 function App() {
@@ -510,6 +510,7 @@ function App() {
       setPageError("");
     } catch (e) {
       setPageError("上传证件照失败：" + (e.message || "未知错误"));
+      throw e;
     } finally {
       setPageLoading(false);
     }
@@ -525,6 +526,7 @@ function App() {
       setPageError("");
     } catch (e) {
       setPageError("上传球星卡失败：" + (e.message || "未知错误"));
+      throw e;
     } finally {
       setPageLoading(false);
     }
@@ -570,6 +572,7 @@ function App() {
       setPageError("");
     } catch (e) {
       setPageError("更新证件照失败：" + (e.message || "未知错误"));
+      throw e;
     } finally {
       setPageLoading(false);
     }
@@ -585,6 +588,7 @@ function App() {
       setPageError("");
     } catch (e) {
       setPageError("更新球星卡失败：" + (e.message || "未知错误"));
+      throw e;
     } finally {
       setPageLoading(false);
     }

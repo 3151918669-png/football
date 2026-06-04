@@ -17,7 +17,7 @@ function PlayerLibraryPage({
   onDeletePhoto,
   onDeleteCard,
 }) {
-  const categories = ["前场", "中场", "后卫"];
+  const categories = ["前场", "中场", "后卫", "守门员"];
 
   const sortedPlayers = [...players].sort(
     (a, b) => Number(a.number || 0) - Number(b.number || 0)
