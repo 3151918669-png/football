@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { Suspense, lazy, useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import HomeShowcasePage from "../components/HomeShowcasePage";
 import ClubInfoPage from "../components/ClubInfoPage";
@@ -14,10 +14,11 @@ import CoachPage from "../components/CoachPage";
 import PlayerPhotoCard from "../components/PlayerPhotoCard";
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/LoadingSpinner";
 import { supabaseClient } from "./supabaseClient";
-import WechatShare from "../components/WechatShare";
-import AdvancedStats from "../components/AdvancedStats";
-import AIAnalysis from "../components/AIAnalysis";
 import ContentEditor from "../components/ContentEditor";
+
+const WechatShare = lazy(() => import("../components/WechatShare"));
+const AdvancedStats = lazy(() => import("../components/AdvancedStats"));
+const AIAnalysis = lazy(() => import("../components/AIAnalysis"));
 
 /* ===== 工具函数 ===== */
 function averageRating(matches) {
@@ -1019,6 +1020,7 @@ function App() {
             )}
             <button
               className={`top-mini-btn ${cloudLoading ? "cloud-pill warn" : cloudStatus === "已同步" || cloudStatus === "已加载" ? "cloud-pill" : ""}`}
+              title={cloudError || "点击立即同步云端数据"}
               onClick={async () => {
                 try {
                   await upsertCloudData();
@@ -1308,26 +1310,31 @@ function App() {
 
         {/* 高级统计组件 */}
         {showAdvancedStats && (
+          <Suspense fallback={<LoadingSpinner text="正在加载高级统计..." />}>
           <AdvancedStats
             players={filteredPlayers}
             teamMatches={filteredTeamMatches}
             coaches={coaches}
             clubInfo={clubInfo}
           />
+          </Suspense>
         )}
 
         {/* AI分析组件 */}
         {showAIAnalysis && (
+          <Suspense fallback={<LoadingSpinner text="正在加载 AI 分析..." />}>
           <AIAnalysis
             players={filteredPlayers}
             onAnalysisComplete={(result) => {
               console.log('AI分析完成:', result);
             }}
           />
+          </Suspense>
         )}
 
         {/* 微信分享组件 */}
         {showWechatShare && (
+          <Suspense fallback={<LoadingSpinner text="正在加载分享功能..." />}>
           <WechatShare
             title={`${clubInfo.name} - 足球球队管理`}
             desc={`查看${clubInfo.name}的球员数据、比赛记录和统计分析`}
@@ -1336,6 +1343,7 @@ function App() {
             onShareSuccess={() => console.log('分享成功')}
             onShareError={(err) => console.error('分享失败:', err)}
           />
+          </Suspense>
         )}
       </main>
     </div>

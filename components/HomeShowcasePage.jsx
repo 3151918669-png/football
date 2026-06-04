@@ -14,12 +14,28 @@ function HomeShowcasePage({
   setSelectedTeamMatchId 
 }) {
   const winRate = teamStats.matches > 0 ? `${((teamStats.wins / teamStats.matches) * 100).toFixed(0)}%` : "-";
+  const matchDate = nextMatch?.date ? new Date(`${nextMatch.date}T${nextMatch.time || "00:00"}`) : null;
+  const daysToMatch = matchDate && !Number.isNaN(matchDate.getTime())
+    ? Math.ceil((matchDate.getTime() - Date.now()) / 86400000)
+    : null;
+  const countdown = daysToMatch === null
+    ? "赛程待公布"
+    : daysToMatch > 1
+      ? `${daysToMatch} 天后开赛`
+      : daysToMatch === 1
+        ? "明天开赛"
+        : daysToMatch === 0
+          ? "今天开赛"
+          : "比赛已结束";
 
   return (
     <section className="home-showcase">
       <div className="home-hero panel">
         <div className="home-hero-copy">
-          <span className="home-kicker">{clubInfo.city} Amateur Football Club</span>
+          <div className="hero-status-row">
+            <span className="home-kicker">{clubInfo.city} Amateur Football Club</span>
+            <span className="season-live"><i /> SEASON LIVE</span>
+          </div>
           <h2>{clubInfo.name}</h2>
           <p>{clubInfo.slogan}</p>
           <small>{clubInfo.description}</small>
@@ -36,6 +52,7 @@ function HomeShowcasePage({
           <div className="club-big-badge">{clubInfo.shortName || "FC"}</div>
           <strong>{clubInfo.homeGround}</strong>
           <span>{clubInfo.homeKit}</span>
+          <small>{teamStats.matches} 场比赛 · {teamStats.goals} 粒进球</small>
         </div>
       </div>
 
@@ -56,7 +73,10 @@ function HomeShowcasePage({
           </div>
           {nextMatch?.opponent ? (
             <div className="next-match-card">
-              <span>NEXT MATCH</span>
+              <div className="match-card-kicker">
+                <span>NEXT MATCH</span>
+                <strong>{countdown}</strong>
+              </div>
               <h3>
                 {clubInfo.name} vs {nextMatch.opponent}
               </h3>

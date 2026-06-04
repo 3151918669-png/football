@@ -97,6 +97,9 @@ li { margin-bottom: 8px; color: var(--sub); line-height: 1.6; }
 .nav-item:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
 .nav-item.active { color: #111; background: linear-gradient(135deg, var(--accent-2), var(--accent)); box-shadow: 0 10px 25px rgba(215, 181, 109, 0.2); }
 
+.nav-icon { display: block; font-size: 1.05rem; line-height: 1; margin-bottom: 5px; }
+.nav-label { display: block; }
+
 .fm-main { min-width: 0; }
 
 .content-edit-mode [data-content-editor-ignore] {
@@ -727,6 +730,7 @@ tr:last-child td { border-bottom: none; }
 }
 
 .home-hero {
+  position: relative;
   min-height: 360px;
   display: grid;
   grid-template-columns: 1.5fr 360px;
@@ -740,6 +744,47 @@ tr:last-child td { border-bottom: none; }
     linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
     var(--panel);
 }
+
+.home-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 55%, rgba(242, 213, 138, 0.07));
+}
+
+.home-hero-copy,
+.home-hero-badge { position: relative; z-index: 1; }
+
+.hero-status-row,
+.match-card-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.season-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 1px;
+}
+
+.season-live i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 5px rgba(71, 209, 140, 0.12);
+}
+
+.home-hero-badge small { color: var(--accent-2); font-weight: 800; }
+.match-card-kicker strong { color: var(--green); font-size: 0.78rem; }
 
 .home-kicker {
   display: inline-flex;
@@ -2827,8 +2872,10 @@ img {
     top: auto;
     height: auto;
     flex-direction: row;
-    justify-content: space-around;
-    padding: 8px 12px;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
     background: rgba(7, 17, 31, 0.95);
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
@@ -2841,13 +2888,15 @@ img {
   }
 
   .nav-item {
-    flex: 1;
-    min-width: 0;
-    padding: 10px 8px;
+    flex: 0 0 62px;
+    min-width: 62px;
+    padding: 8px 5px;
     font-size: 0.75rem;
     text-align: center;
     border-radius: 12px;
   }
+
+  .nav-icon { font-size: 1rem; margin-bottom: 3px; }
 
   .nav-item span {
     display: block;
