@@ -92,6 +92,7 @@ function PlayerLibraryPage({
                   <div
                     key={`${player.name}-${player.number}`}
                     className="team-roster-card"
+                    data-position={player.position}
                     role="button"
                     tabIndex={0}
                     onClick={() => openPlayerDetail(player)}

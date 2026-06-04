@@ -28,9 +28,25 @@ function HomeShowcasePage({
           ? "今天开赛"
           : "比赛已结束";
 
+  const latestResult = latestTeamMatch
+    ? Number(latestTeamMatch.ourScore) > Number(latestTeamMatch.opponentScore)
+      ? { key: "win", label: "胜利" }
+      : Number(latestTeamMatch.ourScore) < Number(latestTeamMatch.opponentScore)
+        ? { key: "loss", label: "失利" }
+        : { key: "draw", label: "平局" }
+    : null;
+
   return (
     <section className="home-showcase">
       <div className="home-hero panel">
+        <div className="stadium-scene" aria-hidden="true">
+          <div className="stadium-light stadium-light-left" />
+          <div className="stadium-light stadium-light-right" />
+          <div className="stadium-pitch">
+            <i className="pitch-half-line" />
+            <i className="pitch-center-circle" />
+          </div>
+        </div>
         <div className="home-hero-copy">
           <div className="hero-status-row">
             <span className="home-kicker">{clubInfo.city} Amateur Football Club</span>
@@ -106,13 +122,14 @@ function HomeShowcasePage({
           </div>
           {latestTeamMatch ? (
             <div
-              className="latest-score-card"
+              className={`latest-score-card result-${latestResult.key}`}
               onClick={() => {
                 setSelectedTeamMatchId(latestTeamMatch.id);
                 setView("teamMatches");
               }}
               style={{ cursor: "pointer" }}
             >
+              <b className="match-result-badge">{latestResult.label}</b>
               <span>
                 {latestTeamMatch.date}｜{latestTeamMatch.stadium}
               </span>
@@ -173,17 +190,27 @@ function HomeShowcasePage({
             <button
               key={player.name}
               className="home-featured-player"
+              data-position={player.position}
               onClick={() => {
                 setSelectedName(player.name);
                 setView("players");
               }}
             >
-              <span>#{player.number}</span>
-              <strong>{player.name}</strong>
-              <small>
-                {player.position}｜能力 {player.ability}
-              </small>
-              <em>{player.role}</em>
+              <div className="featured-player-visual">
+                {player.photo ? (
+                  <img src={player.photo} alt={player.name} loading="lazy" decoding="async" />
+                ) : (
+                  <div className="featured-player-placeholder">#{player.number}</div>
+                )}
+                <b className="featured-position">{player.position}</b>
+              </div>
+              <div className="featured-player-copy">
+                <span>#{player.number}</span>
+                <strong>{player.name}</strong>
+                <small>能力 {player.ability}</small>
+                <em>{player.role}</em>
+              </div>
+              <b className="featured-ability">{player.ability}</b>
             </button>
           ))}
         </div>
