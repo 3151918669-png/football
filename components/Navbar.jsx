@@ -7,6 +7,7 @@ function Navbar({ view, setView, clubInfo }) {
     { key: "playerLibrary", label: "球员", icon: "♟" },
     { key: "rankings", label: "数据", icon: "▥" },
     { key: "lineup", label: "阵容", icon: "◆" },
+    { key: "training", label: "训练", icon: "✓" },
     { key: "club", label: "球队", icon: "◉" },
     { key: "awards", label: "奖项", icon: "★" },
     { key: "coach", label: "教练", icon: "♜" },

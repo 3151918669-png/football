@@ -53,6 +53,9 @@ function PersonalMatchPage({
       goals: "",
       assists: "",
       rating: "",
+      saves: "",
+      conceded: "",
+      cleanSheet: false,
       note: "",
       isMarked: false,
     });
@@ -68,6 +71,9 @@ function PersonalMatchPage({
       goals: String(match.goals ?? ""),
       assists: String(match.assists ?? ""),
       rating: String(match.rating ?? ""),
+      saves: String(match.saves ?? ""),
+      conceded: String(match.conceded ?? ""),
+      cleanSheet: Boolean(match.cleanSheet),
       note: match.note || "",
       isMarked: Boolean(match.isMarked),
     });
@@ -114,6 +120,9 @@ function PersonalMatchPage({
         goals: Number(matchForm.goals || 0),
         assists: Number(matchForm.assists || 0),
         rating: Number(matchForm.rating),
+        saves: Number(matchForm.saves || 0),
+        conceded: Number(matchForm.conceded || 0),
+        cleanSheet: Boolean(matchForm.cleanSheet),
         note: matchForm.note || "暂无备注",
         isMarked: Boolean(matchForm.isMarked),
       });
@@ -201,6 +210,17 @@ function PersonalMatchPage({
             {formErrors.rating && <div className="field-error" style={{ color: "var(--red)", fontSize: "0.8rem", marginTop: "-8px", marginBottom: "8px" }}>{formErrors.rating}</div>}
           </div>
         </div>
+
+        {(selectedPlayer.position === "GK" || selectedPlayer.category === "守门员") && (
+          <div className="goalkeeper-fields">
+            <h3>守门员专属数据</h3>
+            <div className="form-grid">
+              <input type="number" min="0" placeholder="扑救次数" value={matchForm.saves} onChange={(e) => setMatchForm({ ...matchForm, saves: e.target.value })} />
+              <input type="number" min="0" placeholder="失球数" value={matchForm.conceded} onChange={(e) => setMatchForm({ ...matchForm, conceded: e.target.value })} />
+              <label className="check-line"><input type="checkbox" checked={matchForm.cleanSheet} onChange={(e) => setMatchForm({ ...matchForm, cleanSheet: e.target.checked })} />本场零封</label>
+            </div>
+          </div>
+        )}
         
         <ResultButtons
           value={matchForm.result}

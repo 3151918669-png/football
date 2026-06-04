@@ -43,6 +43,36 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
     movePlayer(event, name);
   };
 
+  const downloadPoster = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#07111f";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#d7b56d";
+    ctx.font = "bold 54px sans-serif";
+    ctx.fillText("江特FC · 首发阵容", 70, 90);
+    ctx.fillStyle = "#116a43";
+    ctx.fillRect(90, 150, 900, 1120);
+    ctx.strokeStyle = "rgba(255,255,255,.75)";
+    ctx.lineWidth = 5;
+    ctx.strokeRect(90, 150, 900, 1120);
+    ctx.beginPath(); ctx.moveTo(90, 710); ctx.lineTo(990, 710); ctx.stroke();
+    ctx.beginPath(); ctx.arc(540, 710, 115, 0, Math.PI * 2); ctx.stroke();
+    positions.forEach((player) => {
+      const x = 90 + player.x / 100 * 900;
+      const y = 150 + player.y / 100 * 1120;
+      ctx.beginPath(); ctx.fillStyle = "#f2d58a"; ctx.arc(x, y, 45, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 28px sans-serif"; ctx.fillText(player.number, x, y + 10);
+      ctx.fillStyle = "#fff"; ctx.font = "bold 25px sans-serif"; ctx.fillText(player.name, x, y + 78);
+    });
+    const link = document.createElement("a");
+    link.download = `江特FC-阵容海报-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
   return (
     <section className="dashboard-grid tactics-page">
       <div className="panel wide tactics-toolbar">
@@ -51,10 +81,13 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
           <h2>简易战术板</h2>
           <p>{isAdmin ? "按住球员并拖动到目标位置，阵型会自动同步到云端。" : "访客可以查看当前战术阵型。"}</p>
         </div>
-        {isAdmin && <button className="small-ghost-btn" onClick={() => setPositions(initialPositions)}>重置推荐阵型</button>}
+        <div className="tactics-toolbar-actions">
+          <button className="primary-btn" onClick={downloadPoster}>下载阵容海报</button>
+          {isAdmin && <button className="small-ghost-btn" onClick={() => setPositions(initialPositions)}>重置推荐阵型</button>}
+        </div>
       </div>
 
-      {isAdmin && <div className="panel wide">
+      <div className="panel wide">
         <div
           ref={pitchRef}
           className={`tactics-pitch ${draggingName ? "is-dragging" : ""}`}
@@ -81,7 +114,9 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
               key={player.name}
               className="tactics-player"
               style={{ left: `${player.x}%`, top: `${player.y}%` }}
-              onPointerDown={(event) => startDragging(event, player.name)}
+              onPointerDown={(event) => {
+                if (isAdmin) startDragging(event, player.name);
+              }}
               aria-label={`拖动 ${player.name}`}
             >
               <span>{player.number}</span>
@@ -90,7 +125,7 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
             </button>
           ))}
         </div>
-      </div>}
+      </div>
 
       <div className="panel wide">
         <h2>替补与其他球员</h2>

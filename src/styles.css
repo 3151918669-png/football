@@ -197,6 +197,31 @@ li { margin-bottom: 8px; color: var(--sub); line-height: 1.6; }
   align-items: center;
   gap: 18px;
 }
+.tactics-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.training-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: radial-gradient(circle at top right, rgba(71,209,140,.2), transparent 38%), var(--panel);
+}
+.training-hero-number { min-width: 130px; text-align: center; display: grid; gap: 4px; }
+.training-hero-number strong { color: var(--accent-2); font-size: 3rem; line-height: 1; }
+.training-hero-number span { color: var(--sub); font-weight: 800; }
+.attendance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.attendance-player { border: 1px solid var(--border); border-radius: 15px; padding: 12px; background: rgba(255,255,255,.035); display: grid; gap: 5px; }
+.attendance-player small { color: var(--sub); }
+.attendance-actions { display: flex; gap: 5px; margin-top: 5px; }
+.attendance-actions button { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 6px 4px; color: var(--sub); background: rgba(255,255,255,.04); }
+.attendance-actions .present.active { color: #07111f; background: var(--green); }
+.attendance-actions .leave.active { color: #07111f; background: var(--orange); }
+.attendance-actions .absent.active { color: white; background: var(--red); }
+.attendance-status { font-weight: 900; color: var(--sub); }
+.attendance-status.present { color: var(--green); }
+.attendance-status.leave { color: var(--orange); }
+.attendance-status.absent { color: var(--red); }
+.goalkeeper-fields { margin: 14px 0; border: 1px solid rgba(215,181,109,.25); border-radius: 16px; padding: 14px; background: rgba(215,181,109,.06); }
 
 .tactics-pitch {
   position: relative;
@@ -3083,6 +3108,8 @@ img {
   }
 
   .image-upload-grid { grid-template-columns: 1fr; }
+  .attendance-grid { grid-template-columns: 1fr; }
+  .training-hero { align-items: flex-start; }
   .tactics-toolbar { align-items: flex-start; flex-direction: column; }
   .tactics-player { width: 60px; min-height: 60px; padding: 5px 3px; }
   .tactics-player strong { max-width: 52px; font-size: 0.62rem; }

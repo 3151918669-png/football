@@ -17,6 +17,15 @@ function RankingsPage({ players, teamMatches, ranking, teamStats }) {
   const sortedByAppearance = [...players]
     .map((p) => ({ ...p, count: p.matches?.length || 0 }))
     .sort((a, b) => b.count - a.count);
+  const goalkeeperRanking = players
+    .filter((p) => p.position === "GK" || p.category === "守门员")
+    .map((p) => ({
+      ...p,
+      saves: totalStat(p.matches || [], "saves"),
+      conceded: totalStat(p.matches || [], "conceded"),
+      cleanSheets: (p.matches || []).filter((match) => match.cleanSheet).length,
+    }))
+    .sort((a, b) => b.cleanSheets - a.cleanSheets || b.saves - a.saves);
 
   return (
     <div className="match-page rankings-page">
@@ -168,6 +177,17 @@ function RankingsPage({ players, teamMatches, ranking, teamStats }) {
           </div>
         )}
       </section>
+
+      {goalkeeperRanking.length > 0 && (
+        <section className="panel wide">
+          <h2>守门员排行榜</h2>
+          <div className="table-wrap">
+            <table><thead><tr><th>排名</th><th>门将</th><th>出场</th><th>扑救</th><th>失球</th><th>零封</th></tr></thead>
+              <tbody>{goalkeeperRanking.map((p, index) => <tr key={`gk-${p.name}`}><td>{index + 1}</td><td><strong>{p.name}</strong></td><td>{p.matches?.length || 0}</td><td>{p.saves}</td><td>{p.conceded}</td><td><span className="ability-up">{p.cleanSheets}</span></td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

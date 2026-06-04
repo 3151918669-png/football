@@ -15,6 +15,7 @@ import PlayerPhotoCard from "../components/PlayerPhotoCard";
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/LoadingSpinner";
 import { supabaseClient } from "./supabaseClient";
 import ContentEditor from "../components/ContentEditor";
+import TrainingPage from "../components/TrainingPage";
 
 const WechatShare = lazy(() => import("../components/WechatShare"));
 const AdvancedStats = lazy(() => import("../components/AdvancedStats"));
@@ -243,6 +244,7 @@ function App() {
   const [nextMatch, setNextMatch] = useState(() => safeGetLocalStorage("fm_nextMatch", { opponent: "", date: "", time: "", stadium: "", type: "友谊赛", lineup: "", note: "" }));
   const [contentEdits, setContentEdits] = useState(() => safeGetLocalStorage("fm_contentEdits", {}));
   const [tacticsPositions, setTacticsPositions] = useState(() => safeGetLocalStorage("fm_tacticsPositions", []));
+  const [trainingSessions, setTrainingSessions] = useState(() => safeGetLocalStorage("fm_trainingSessions", []));
 
   // --- 云端状态 ---
   const [cloudStatus, setCloudStatus] = useState("未连接");
@@ -282,7 +284,7 @@ function App() {
     photo: "",
     cardImage: "",
   });
-  const [matchForm, setMatchForm] = useState({ date: "", opponent: "", result: "", goals: "", assists: "", rating: "", note: "", isMarked: false });
+  const [matchForm, setMatchForm] = useState({ date: "", opponent: "", result: "", goals: "", assists: "", rating: "", saves: "", conceded: "", cleanSheet: false, note: "", isMarked: false });
   const [teamMatchForm, setTeamMatchForm] = useState({ date: "", opponent: "", stadium: "", homeKit: "", awayKit: "", ourScore: "", opponentScore: "", scorers: "", assists: "", bestPlayer: "", note: "" });
   const [coachMatchForm, setCoachMatchForm] = useState({ date: "", opponent: "", result: "", note: "", isMarked: false });
 
@@ -303,11 +305,12 @@ function App() {
   useEffect(() => { safeSetLocalStorage("fm_nextMatch", nextMatch); }, [nextMatch]);
   useEffect(() => { safeSetLocalStorage("fm_contentEdits", contentEdits); }, [contentEdits]);
   useEffect(() => { safeSetLocalStorage("fm_tacticsPositions", tacticsPositions); }, [tacticsPositions]);
+  useEffect(() => { safeSetLocalStorage("fm_trainingSessions", trainingSessions); }, [trainingSessions]);
   useEffect(() => { safeSetLocalStorage("fm_isAdmin", isAdmin); }, [isAdmin]);
 
   /* ===== 云端：构建/应用数据载荷 ===== */
   const buildTeamPayload = () => {
-    return { players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, savedAt: new Date().toISOString() };
+    return { players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, trainingSessions, savedAt: new Date().toISOString() };
   };
 
   const applyTeamPayload = (payload) => {
@@ -320,6 +323,7 @@ function App() {
       if (payload.nextMatch) setNextMatch(payload.nextMatch);
       if (payload.contentEdits) setContentEdits(payload.contentEdits);
       if (payload.tacticsPositions) setTacticsPositions(payload.tacticsPositions);
+      if (payload.trainingSessions) setTrainingSessions(payload.trainingSessions);
       return true;
     } catch (e) {
       console.error("应用数据失败:", e);
@@ -390,7 +394,7 @@ function App() {
       upsertCloudData();
     }, 900);
     return () => clearTimeout(timer);
-  }, [players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, isAdmin, cloudReady]);
+  }, [players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, trainingSessions, isAdmin, cloudReady]);
 
   /* ===== Supabase Auth 会话 ===== */
   useEffect(() => {
@@ -760,6 +764,9 @@ function App() {
         goals: Number(matchForm.goals || 0),
         assists: Number(matchForm.assists || 0),
         rating: Number(matchForm.rating),
+        saves: Number(matchForm.saves || 0),
+        conceded: Number(matchForm.conceded || 0),
+        cleanSheet: Boolean(matchForm.cleanSheet),
         note: matchForm.note || "暂无备注",
         isMarked: Boolean(matchForm.isMarked),
         abilityChange: 0,
@@ -774,7 +781,7 @@ function App() {
         })
       );
 
-      setMatchForm({ date: "", opponent: "", result: "", goals: "", assists: "", rating: "", note: "", isMarked: false });
+      setMatchForm({ date: "", opponent: "", result: "", goals: "", assists: "", rating: "", saves: "", conceded: "", cleanSheet: false, note: "", isMarked: false });
       setPageError("");
     } catch (e) {
       setPageError("添加比赛记录失败：" + (e.message || "未知错误"));
@@ -937,6 +944,8 @@ function App() {
       const localManualAwards = safeGetLocalStorage("fm_manualAwards", null);
       const localNextMatch = safeGetLocalStorage("fm_nextMatch", null);
       const localContentEdits = safeGetLocalStorage("fm_contentEdits", null);
+      const localTacticsPositions = safeGetLocalStorage("fm_tacticsPositions", null);
+      const localTrainingSessions = safeGetLocalStorage("fm_trainingSessions", null);
 
       if (localPlayers) setPlayers(localPlayers);
       if (localCoaches) setCoaches(localCoaches);
@@ -945,6 +954,8 @@ function App() {
       if (localManualAwards) setManualAwards(localManualAwards);
       if (localNextMatch) setNextMatch(localNextMatch);
       if (localContentEdits) setContentEdits(localContentEdits);
+      if (localTacticsPositions) setTacticsPositions(localTacticsPositions);
+      if (localTrainingSessions) setTrainingSessions(localTrainingSessions);
       setBackupMessage("已从本地缓存恢复数据。");
     } catch (e) {
       setBackupMessage("恢复失败：" + (e.message || "未知错误"));
@@ -960,6 +971,8 @@ function App() {
     setManualAwards({ topScorer: "", assistKing: "", bestDefender: "", bestCoach: "" });
     setNextMatch({ opponent: "", date: "", time: "", stadium: "", type: "友谊赛", lineup: "", note: "" });
     setContentEdits({});
+    setTacticsPositions([]);
+    setTrainingSessions([]);
     setBackupMessage("已恢复初始数据。");
   };
 
@@ -1023,6 +1036,7 @@ function App() {
               {currentView === "teamMatches" && "比赛详情中心"}
               {currentView === "matches" && "个人比赛记录"}
               {currentView === "lineup" && "阵容推荐"}
+              {currentView === "training" && "训练与考勤"}
               {currentView === "rankings" && "数据排行榜"}
               {currentView === "operations" && "球队运营中心"}
               {currentView === "awards" && "奖项系统"}
@@ -1281,6 +1295,10 @@ function App() {
             setPositions={setTacticsPositions}
             isAdmin={isAdmin}
           />
+        )}
+
+        {currentView === "training" && (
+          <TrainingPage players={players} sessions={trainingSessions} setSessions={setTrainingSessions} isAdmin={isAdmin} />
         )}
 
         {currentView === "rankings" && (
