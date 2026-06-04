@@ -1,0 +1,298 @@
+/* PWA管理器样式 */
+.pwa-manager {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.pwa-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pwa-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.pwa-header p {
+  margin: 8px 0 0 0;
+  color: var(--sub);
+  font-size: 15px;
+}
+
+.pwa-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.pwa-status-card {
+  background: var(--panel-2);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: all 0.2s ease;
+}
+
+.pwa-status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: rgba(215, 181, 109, 0.3);
+}
+
+.pwa-status-card.error {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.pwa-status-card.error h3 {
+  color: var(--red);
+}
+
+.pwa-status-icon {
+  font-size: 32px;
+  width: 60px;
+  height: 60px;
+  background: rgba(86, 165, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pwa-status-card:nth-child(2) .pwa-status-icon {
+  background: rgba(71, 209, 140, 0.1);
+}
+
+.pwa-status-card:nth-child(3) .pwa-status-icon {
+  background: rgba(255, 180, 84, 0.1);
+}
+
+.pwa-status-card:nth-child(4) .pwa-status-icon {
+  background: rgba(215, 181, 109, 0.1);
+}
+
+.pwa-status-content {
+  flex: 1;
+}
+
+.pwa-status-content h3 {
+  margin: 0 0 5px 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pwa-status-content p {
+  margin: 0;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.pwa-storage-section {
+  background: var(--panel-2);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 30px;
+  border: 1px solid var(--border);
+}
+
+.pwa-storage-section h3 {
+  margin: 0 0 15px 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pwa-storage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pwa-storage-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.pwa-storage-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--accent));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pwa-storage-details {
+  display: flex;
+  justify-content: space-between;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.pwa-actions-section {
+  background: var(--panel-2);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 30px;
+  border: 1px solid var(--border);
+}
+
+.pwa-actions-section h3 {
+  margin: 0 0 15px 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pwa-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.pwa-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 15px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  min-height: 100px;
+  justify-content: center;
+}
+
+.pwa-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(215, 181, 109, 0.3);
+  transform: translateY(-2px);
+}
+
+.pwa-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pwa-action-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.pwa-action-icon {
+  font-size: 24px;
+  display: block;
+}
+
+.pwa-tips {
+  background: var(--panel-2);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+
+.pwa-tips h3 {
+  margin: 0 0 15px 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pwa-tips ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pwa-tips li {
+  padding: 8px 0;
+  color: var(--sub);
+  position: relative;
+  padding-left: 25px;
+  font-size: 14px;
+}
+
+.pwa-tips li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--green);
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+  .pwa-manager {
+    padding: 15px;
+  }
+  
+  .pwa-status-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .pwa-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .pwa-action-btn {
+    min-height: 80px;
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 15px 20px;
+  }
+  
+  .pwa-action-icon {
+    font-size: 20px;
+    margin-right: 10px;
+  }
+}
+
+/* 平板适配 */
+@media (min-width: 601px) and (max-width: 900px) {
+  .pwa-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 暗色模式优化 */
+@media (prefers-color-scheme: dark) {
+  .pwa-status-card,
+  .pwa-storage-section,
+  .pwa-actions-section,
+  .pwa-tips {
+    background: #0f1a2b;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .pwa-action-btn {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .pwa-manager {
+    display: none;
+  }
+}

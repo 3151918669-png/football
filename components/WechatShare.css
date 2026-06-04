@@ -1,0 +1,457 @@
+/* 微信分享组件样式 */
+
+/* 主容器 */
+.wechat-share-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+/* 微信环境提示 */
+.wx-share-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.1), rgba(7, 193, 96, 0.05));
+  border: 1px solid rgba(7, 193, 96, 0.3);
+  border-radius: 12px;
+  color: #07c160;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  animation: wx-hint-pulse 2s infinite;
+}
+
+.wx-hint-icon {
+  font-size: 18px;
+  animation: wx-hint-bounce 1.5s infinite;
+}
+
+@keyframes wx-hint-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(7, 193, 96, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(7, 193, 96, 0.2);
+  }
+}
+
+@keyframes wx-hint-bounce {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+/* 分享按钮组 */
+.share-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: none;
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 70px;
+  border: 1px solid var(--border);
+}
+
+.share-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  border-color: rgba(215, 181, 109, 0.3);
+}
+
+.share-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.share-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 各平台按钮样式 */
+.wechat-btn {
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.1), rgba(7, 193, 96, 0.05));
+  border-color: rgba(7, 193, 96, 0.3);
+}
+
+.wechat-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.15), rgba(7, 193, 96, 0.1));
+  border-color: rgba(7, 193, 96, 0.5);
+}
+
+.friend-btn {
+  background: linear-gradient(135deg, rgba(86, 165, 255, 0.1), rgba(86, 165, 255, 0.05));
+  border-color: rgba(86, 165, 255, 0.3);
+}
+
+.friend-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(86, 165, 255, 0.15), rgba(86, 165, 255, 0.1));
+  border-color: rgba(86, 165, 255, 0.5);
+}
+
+.qq-btn {
+  background: linear-gradient(135deg, rgba(0, 153, 255, 0.1), rgba(0, 153, 255, 0.05));
+  border-color: rgba(0, 153, 255, 0.3);
+}
+
+.qq-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 153, 255, 0.15), rgba(0, 153, 255, 0.1));
+  border-color: rgba(0, 153, 255, 0.5);
+}
+
+.copy-btn {
+  background: linear-gradient(135deg, rgba(215, 181, 109, 0.1), rgba(215, 181, 109, 0.05));
+  border-color: rgba(215, 181, 109, 0.3);
+}
+
+.copy-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(215, 181, 109, 0.15), rgba(215, 181, 109, 0.1));
+  border-color: rgba(215, 181, 109, 0.5);
+}
+
+.qrcode-btn {
+  background: linear-gradient(135deg, rgba(71, 209, 140, 0.1), rgba(71, 209, 140, 0.05));
+  border-color: rgba(71, 209, 140, 0.3);
+}
+
+.qrcode-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(71, 209, 140, 0.15), rgba(71, 209, 140, 0.1));
+  border-color: rgba(71, 209, 140, 0.5);
+}
+
+/* 分享图标 */
+.share-icon {
+  font-size: 20px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.share-text {
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* 微信SDK加载中 */
+.wx-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.wx-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(7, 193, 96, 0.3);
+  border-top: 2px solid #07c160;
+  border-radius: 50%;
+  animation: wx-loading-spin 1s linear infinite;
+}
+
+@keyframes wx-loading-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 分享错误提示 */
+.share-error-tip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 15px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 12px;
+  color: var(--red);
+  font-size: 13px;
+  margin-bottom: 15px;
+}
+
+.retry-btn {
+  background: rgba(255, 107, 107, 0.2);
+  color: var(--red);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: rgba(255, 107, 107, 0.3);
+}
+
+/* 分享成功提示 */
+.share-success-tip {
+  padding: 12px 15px;
+  background: rgba(71, 209, 140, 0.1);
+  border: 1px solid rgba(71, 209, 140, 0.3);
+  border-radius: 12px;
+  color: var(--green);
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 15px;
+  animation: success-fade 2s ease;
+}
+
+@keyframes success-fade {
+  0% { opacity: 0; transform: translateY(10px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* 分享按钮组件 */
+.wechat-share-button-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.share-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.1), rgba(7, 193, 96, 0.05));
+  border: 1px solid rgba(7, 193, 96, 0.3);
+  border-radius: 12px;
+  color: #07c160;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-trigger-btn:hover {
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.15), rgba(7, 193, 96, 0.1));
+  border-color: rgba(7, 193, 96, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(7, 193, 96, 0.2);
+}
+
+.share-btn-icon {
+  font-size: 16px;
+}
+
+/* 分享下拉菜单 */
+.share-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 300px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  animation: dropdown-slide 0.2s ease;
+}
+
+@keyframes dropdown-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.share-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.share-dropdown-header h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.share-close-btn {
+  background: none;
+  border: none;
+  color: var(--sub);
+  font-size: 20px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.share-dropdown-content {
+  padding: 20px;
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+  .share-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .share-btn {
+    min-height: 60px;
+    padding: 10px 5px;
+  }
+  
+  .share-icon {
+    font-size: 18px;
+  }
+  
+  .share-text {
+    font-size: 11px;
+  }
+  
+  .share-dropdown {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 90%;
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 400px) {
+  .share-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 暗色模式优化 */
+@media (prefers-color-scheme: dark) {
+  .share-btn {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  
+  .share-dropdown {
+    background: #0f1a2b;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .wechat-share-container,
+  .wechat-share-button-wrapper {
+    display: none;
+  }
+}
+
+/* 微信分享预览样式 */
+.share-preview {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+}
+
+.share-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.share-preview-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.share-preview-info h5 {
+  margin: 0 0 3px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.share-preview-info p {
+  margin: 0;
+  color: #666;
+  font-size: 12px;
+}
+
+.share-preview-content {
+  border-left: 3px solid #07c160;
+  padding-left: 10px;
+  margin-bottom: 10px;
+}
+
+.share-preview-title {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.share-preview-desc {
+  margin: 0 0 10px 0;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.share-preview-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.share-preview-link {
+  color: #07c160;
+  font-size: 12px;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.share-preview-link:hover {
+  text-decoration: underline;
+}

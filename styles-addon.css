@@ -1,0 +1,285 @@
+/* ============================================================
+   高级优化功能 - PWA、微信分享、高级统计、AI分析
+   ============================================================ */
+
+/* 高级功能入口栏 */
+.advanced-features-bar {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+  padding: 15px;
+  background: var(--panel);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  border-radius: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.advanced-feature-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(78, 205, 196, 0.1), rgba(78, 205, 196, 0.05));
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 10px;
+  color: #4ECDC4;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.advanced-feature-btn:hover {
+  background: linear-gradient(135deg, rgba(78, 205, 196, 0.2), rgba(78, 205, 196, 0.1));
+  border-color: rgba(78, 205, 196, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(78, 205, 196, 0.15);
+}
+
+/* PWA相关 */
+.pwa-install-prompt {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  animation: slide-up 0.3s ease;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.pwa-manager-panel {
+  background: var(--panel);
+  border: 2px solid rgba(78, 205, 196, 0.3);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* 微信分享 */
+.wechat-share-btn {
+  background: linear-gradient(135deg, #07C160, #05A54D);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wechat-share-btn:hover {
+  background: linear-gradient(135deg, #05A54D, #038C3E);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(7, 193, 96, 0.3);
+}
+
+.wechat-share-dropdown {
+  position: absolute;
+  background: var(--panel);
+  border: 1px solid rgba(7, 193, 96, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+  min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.wechat-share-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.wechat-share-option:hover {
+  background: rgba(7, 193, 96, 0.1);
+}
+
+/* 高级统计 */
+.advanced-stats-panel {
+  background: var(--panel);
+  border: 2px solid rgba(215, 181, 109, 0.3);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.stats-chart-container {
+  background: var(--panel-2);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.radar-chart {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.heatmap-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: #0a1424;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.export-tools {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.export-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 8px;
+  background: rgba(78, 205, 196, 0.1);
+  color: #4ECDC4;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+  background: rgba(78, 205, 196, 0.2);
+  transform: translateY(-2px);
+}
+
+/* AI分析 */
+.ai-analysis-panel {
+  background: var(--panel);
+  border: 2px solid rgba(78, 205, 196, 0.3);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.ai-chat-bubble {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.ai-chat-bubble.ai {
+  background: rgba(78, 205, 196, 0.1);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  border-top-left-radius: 4px;
+  margin-right: auto;
+}
+
+.ai-chat-bubble.user {
+  background: rgba(215, 181, 109, 0.1);
+  border: 1px solid rgba(215, 181, 109, 0.2);
+  border-top-right-radius: 4px;
+  margin-left: auto;
+}
+
+.ai-loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.ai-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ECDC4;
+  animation: ai-pulse 1.4s ease-in-out infinite;
+}
+
+.ai-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.ai-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes ai-pulse {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .pwa-install-prompt {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+  }
+  
+  .advanced-stats-panel,
+  .ai-analysis-panel {
+    padding: 15px;
+  }
+  
+  .export-tools {
+    justify-content: center;
+  }
+  
+  .ai-chat-bubble {
+    max-width: 85%;
+  }
+}
+
+@media (max-width: 480px) {
+  .wechat-share-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .export-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .ai-chat-bubble {
+    max-width: 90%;
+    padding: 10px 12px;
+  }
+}
+
+/* 暗色模式优化 */
+@media (prefers-color-scheme: dark) {
+  .pwa-manager-panel,
+  .advanced-stats-panel,
+  .ai-analysis-panel {
+    background: #0f1a2b;
+  }
+  
+  .stats-chart-container {
+    background: #0a1321;
+  }
+  
+  .heatmap-container {
+    background: #050b14;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .pwa-install-prompt,
+  .wechat-share-btn,
+  .export-btn,
+  .ai-loading-indicator {
+    display: none;
+  }
+  
+  .advanced-stats-panel,
+  .ai-analysis-panel {
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+  }
+}

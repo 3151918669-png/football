@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>离线模式 - 城市猎人FC</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192x192.png">
+    <style>
+        .offline-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #050b14 0%, #07111f 45%, #0b1728 100%);
+        }
+        
+        .offline-content {
+            max-width: 500px;
+            padding: 40px;
+            background: rgba(16, 28, 47, 0.8);
+            border-radius: var(--radius);
+            border: 1px solid rgba(215, 181, 109, 0.2);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+        
+        .offline-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        
+        .offline-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            color: var(--text);
+        }
+        
+        .offline-text {
+            color: var(--sub);
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        
+        .offline-features {
+            text-align: left;
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border-left: 3px solid var(--accent);
+        }
+        
+        .offline-features h3 {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .offline-features ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .offline-features li {
+            padding: 8px 0;
+            color: var(--sub);
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .offline-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--green);
+            font-weight: bold;
+        }
+        
+        .offline-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .offline-btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .primary-btn {
+            background: var(--accent);
+            color: #000;
+        }
+        
+        .primary-btn:hover {
+            background: var(--accent-2);
+            transform: translateY(-2px);
+        }
+        
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .connection-status {
+            margin-top: 20px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .online {
+            background: rgba(71, 209, 140, 0.1);
+            color: var(--green);
+            border: 1px solid rgba(71, 209, 140, 0.3);
+        }
+        
+        .offline {
+            background: rgba(255, 107, 107, 0.1);
+            color: var(--red);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        
+        .team-logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        
+        @media (max-width: 600px) {
+            .offline-content {
+                padding: 25px;
+                margin: 15px;
+            }
+            
+            .offline-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-content">
+            <div class="team-logo">⚽</div>
+            <div class="offline-icon">📶</div>
+            <h1 class="offline-title">网络连接已断开</h1>
+            <p class="offline-text">
+                当前处于离线状态，无法连接到服务器。但您仍然可以访问已缓存的球队数据。
+            </p>
+            
+            <div class="offline-features">
+                <h3>离线可用功能：</h3>
+                <ul>
+                    <li>查看所有球员信息</li>
+                    <li>浏览历史比赛记录</li>
+                    <li>查看球员数据统计</li>
+                    <li>访问阵容推荐系统</li>
+                    <li>查看排行榜数据</li>
+                    <li>浏览球队介绍信息</li>
+                </ul>
+            </div>
+            
+            <div id="connectionStatus" class="connection-status">
+                正在检测网络状态...
+            </div>
+            
+            <div class="offline-actions">
+                <button class="offline-btn primary-btn" onclick="tryReconnect()">重新连接</button>
+                <button class="offline-btn secondary-btn" onclick="goToCachedPage()">查看缓存内容</button>
+            </div>
+            
+            <p style="margin-top: 20px; font-size: 13px; color: rgba(147, 164, 186, 0.6);">
+                网络恢复后，数据将自动同步。在此期间的数据修改会保存在本地。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 检测网络状态
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connectionStatus');
+            if (navigator.onLine) {
+                statusEl.textContent = '✅ 网络已连接，正在同步数据...';
+                statusEl.className = 'connection-status online';
+                statusEl.style.display = 'block';
+                
+                // 3秒后自动跳转
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+            } else {
+                statusEl.textContent = '❌ 仍然处于离线状态';
+                statusEl.className = 'connection-status offline';
+                statusEl.style.display = 'block';
+            }
+        }
+        
+        // 尝试重新连接
+        function tryReconnect() {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = '🔄 正在尝试重新连接...';
+            statusEl.className = 'connection-status';
+            statusEl.style.display = 'block';
+            
+            // 模拟网络检测
+            setTimeout(() => {
+                updateConnectionStatus();
+            }, 1500);
+        }
+        
+        // 跳转到缓存页面
+        function goToCachedPage() {
+            // 尝试从缓存加载主页
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                window.location.href = '/';
+            } else {
+                alert('Service Worker未启用，无法访问缓存内容');
+            }
+        }
+        
+        // 初始化
+        window.addEventListener('load', () => {
+            updateConnectionStatus();
+            
+            // 监听网络状态变化
+            window.addEventListener('online', updateConnectionStatus);
+            window.addEventListener('offline', updateConnectionStatus);
+            
+            // 注册Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('离线页面Service Worker注册成功:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('离线页面Service Worker注册失败:', error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
