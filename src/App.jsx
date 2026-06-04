@@ -246,6 +246,7 @@ function App() {
   const [cloudStatus, setCloudStatus] = useState("未连接");
   const [cloudError, setCloudError] = useState("");
   const [cloudLoading, setCloudLoading] = useState(false);
+  const [cloudReady, setCloudReady] = useState(false);
 
   // --- UI 状态 ---
   const [view, setView] = useState("dashboard");
@@ -357,17 +358,34 @@ function App() {
     } finally {
       setCloudLoading(false);
       setPageLoading(false);
+      setCloudReady(true);
     }
   };
 
+  /* ===== 启动和跨设备刷新时加载云端最新数据 ===== */
+  useEffect(() => {
+    loadCloudData();
+  }, []);
+
+  useEffect(() => {
+    const refreshForVisitor = () => {
+      if (!isAdmin && document.visibilityState === "visible") {
+        loadCloudData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", refreshForVisitor);
+    return () => document.removeEventListener("visibilitychange", refreshForVisitor);
+  }, [isAdmin]);
+
   /* ===== 云端自动保存 (900ms 防抖) ===== */
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin || !cloudReady) return;
     const timer = setTimeout(() => {
       upsertCloudData();
     }, 900);
     return () => clearTimeout(timer);
-  }, [players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, isAdmin]);
+  }, [players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, isAdmin, cloudReady]);
 
   /* ===== computed 数据 ===== */
   const seasonOptions = useMemo(() => {
