@@ -1157,6 +1157,7 @@ function App() {
             clubInfo={clubInfo}
             teamStats={teamStats}
             latestTeamMatch={latestTeamMatch}
+            recentTeamMatches={filteredTeamMatches.slice(-5)}
             featuredPlayers={featuredPlayers}
             ranking={ranking}
             mvp={mvp}

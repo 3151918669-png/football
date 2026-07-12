@@ -46,11 +46,15 @@ function SeasonStats({ player }) {
   );
 }
 
-function InfoCard({ title, value }) {
+function InfoCard({ title, value, meta, index }) {
   return (
     <div className="panel info-card">
-      <span>{title}</span>
+      <div className="info-card-top">
+        <span>{title}</span>
+        {index && <small>{index}</small>}
+      </div>
       <strong>{value}</strong>
+      {meta && <em>{meta}</em>}
     </div>
   );
 }

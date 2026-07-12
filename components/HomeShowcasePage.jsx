@@ -5,6 +5,7 @@ function HomeShowcasePage({
   clubInfo, 
   teamStats, 
   latestTeamMatch, 
+  recentTeamMatches = [],
   featuredPlayers, 
   ranking, 
   mvp, 
@@ -35,6 +36,14 @@ function HomeShowcasePage({
         ? { key: "loss", label: "失利" }
         : { key: "draw", label: "平局" }
     : null;
+  const goalsPerMatch = teamStats.matches > 0 ? (teamStats.goals / teamStats.matches).toFixed(1) : "0.0";
+  const recentForm = [...recentTeamMatches].reverse().map((match) => {
+    const ourScore = Number(match.ourScore || 0);
+    const opponentScore = Number(match.opponentScore || 0);
+    if (ourScore > opponentScore) return { key: "win", label: "胜" };
+    if (ourScore < opponentScore) return { key: "loss", label: "负" };
+    return { key: "draw", label: "平" };
+  });
 
   return (
     <section className="home-showcase">
@@ -50,7 +59,7 @@ function HomeShowcasePage({
         <div className="home-hero-copy">
           <div className="hero-status-row">
             <span className="home-kicker">{clubInfo.city} Amateur Football Club</span>
-            <span className="season-live"><i /> SEASON LIVE</span>
+            <span className="season-live"><i /> 2026 SEASON</span>
           </div>
           <h2>{clubInfo.name}</h2>
           <p>{clubInfo.slogan}</p>
@@ -63,20 +72,35 @@ function HomeShowcasePage({
               进入比赛详情
             </button>
           </div>
+          <div className="hero-record-line">
+            <div><strong>{teamStats.wins}</strong><span>胜</span></div>
+            <div><strong>{teamStats.draws}</strong><span>平</span></div>
+            <div><strong>{teamStats.losses}</strong><span>负</span></div>
+            <div><strong>{goalsPerMatch}</strong><span>场均进球</span></div>
+          </div>
         </div>
         <div className="home-hero-badge">
+          <span className="identity-label">CLUB IDENTITY</span>
           <div className="club-big-badge">{clubInfo.shortName || "FC"}</div>
           <strong>{clubInfo.homeGround}</strong>
           <span>{clubInfo.homeKit}</span>
           <small>{teamStats.matches} 场比赛 · {teamStats.goals} 粒进球</small>
+          <div className="recent-form-row">
+            <small>近况</small>
+            <div>
+              {recentForm.length ? recentForm.map((result, index) => (
+                <i key={`${result.key}-${index}`} className={`form-dot ${result.key}`}>{result.label}</i>
+              )) : <em>等待比赛数据</em>}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="home-stat-grid">
-        <InfoCard title="球员数量" value={teamStats.players} />
-        <InfoCard title="整场比赛" value={teamStats.matches} />
-        <InfoCard title="总进球" value={teamStats.goals} />
-        <InfoCard title="胜率" value={winRate} />
+        <InfoCard index="01" title="球队阵容" value={teamStats.players} meta="注册球员" />
+        <InfoCard index="02" title="赛季比赛" value={teamStats.matches} meta={`${teamStats.wins}胜 ${teamStats.draws}平 ${teamStats.losses}负`} />
+        <InfoCard index="03" title="进攻表现" value={teamStats.goals} meta={`场均 ${goalsPerMatch} 球`} />
+        <InfoCard index="04" title="赛季胜率" value={winRate} meta="持续刷新" />
       </div>
 
       <div className="home-two-col">
@@ -164,13 +188,17 @@ function HomeShowcasePage({
                 setSelectedName(mvp.name);
                 setView("players");
               }}
-              style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: 0 }}
             >
-              <strong>{mvp.name}</strong>
-              <span>
-                {mvp.position}｜场均评分 {mvp.avgRating}
-              </span>
-              <p>{mvp.role}</p>
+              <div className="mvp-photo">
+                {mvp.photo ? <img src={mvp.photo} alt={mvp.name} /> : <span>#{mvp.number}</span>}
+              </div>
+              <div className="mvp-copy">
+                <small>FORM PLAYER</small>
+                <strong>{mvp.name}</strong>
+                <span>{mvp.position} · 场均评分 {mvp.avgRating}</span>
+                <p>{mvp.role}</p>
+              </div>
+              <b>{mvp.avgRating}</b>
             </button>
           ) : (
             <p>暂无个人评分记录，录入后自动生成近期核心球员。</p>
