@@ -12,8 +12,8 @@ function ImageDropzone({ title, description, value, onUpload, onDelete, uploadin
       setStatus("请选择 JPG、PNG、WebP 等图片文件");
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setStatus("图片不能超过 8MB");
+    if (file.size > 20 * 1024 * 1024) {
+      setStatus("图片不能超过 20MB");
       return;
     }
     if (!onUpload) {
@@ -23,7 +23,7 @@ function ImageDropzone({ title, description, value, onUpload, onDelete, uploadin
 
     try {
       setLocalUploading(true);
-      setStatus("正在上传到 Supabase...");
+      setStatus("正在压缩并上传到 Supabase...");
       await onUpload(file);
       setStatus("上传成功，正在同步云端数据");
     } catch (error) {

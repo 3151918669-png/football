@@ -1,21 +1,21 @@
 import React, { Suspense, lazy, useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import HomeShowcasePage from "../components/HomeShowcasePage";
-import ClubInfoPage from "../components/ClubInfoPage";
-import PlayerLibraryPage from "../components/PlayerLibraryPage";
-import PlayerDetail from "../components/PlayerDetail";
-import TeamMatchesPage from "../components/TeamMatchesPage";
-import PersonalMatchPage from "../components/PersonalMatchPage";
-import LineupPage from "../components/LineupPage";
-import RankingsPage from "../components/RankingsPage";
-import OperationsPage from "../components/OperationsPage";
-import AwardsPage from "../components/AwardsPage";
-import CoachPage from "../components/CoachPage";
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/LoadingSpinner";
 import { supabaseClient } from "./supabaseClient";
 import ContentEditor from "../components/ContentEditor";
-import TrainingPage from "../components/TrainingPage";
 
+const ClubInfoPage = lazy(() => import("../components/ClubInfoPage"));
+const PlayerLibraryPage = lazy(() => import("../components/PlayerLibraryPage"));
+const PlayerDetail = lazy(() => import("../components/PlayerDetail"));
+const TeamMatchesPage = lazy(() => import("../components/TeamMatchesPage"));
+const PersonalMatchPage = lazy(() => import("../components/PersonalMatchPage"));
+const LineupPage = lazy(() => import("../components/LineupPage"));
+const RankingsPage = lazy(() => import("../components/RankingsPage"));
+const OperationsPage = lazy(() => import("../components/OperationsPage"));
+const AwardsPage = lazy(() => import("../components/AwardsPage"));
+const CoachPage = lazy(() => import("../components/CoachPage"));
+const TrainingPage = lazy(() => import("../components/TrainingPage"));
 const WechatShare = lazy(() => import("../components/WechatShare"));
 
 /* ===== 工具函数 ===== */
@@ -65,31 +65,50 @@ function countResults(matches) {
   );
 }
 
-function readImageAsDataUrl(file, callback) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const maxW = 800;
-      const maxH = 800;
-      let w = img.width;
-      let h = img.height;
-      if (w > maxW || h > maxH) {
-        const ratio = Math.min(maxW / w, maxH / h);
-        w = Math.round(w * ratio);
-        h = Math.round(h * ratio);
-      }
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL("image/jpeg", 0.85));
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
     };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(file);
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("图片无法读取"));
+    };
+    image.src = objectUrl;
+  });
+}
+
+async function optimizeImageForUpload(file) {
+  const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!supportedTypes.includes(String(file.type || "").toLowerCase())) return file;
+
+  try {
+    const image = await loadImageFile(file);
+    const maxSide = 1600;
+    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+    if (scale === 1 && file.size <= 900 * 1024) return file;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.82));
+    if (!blob || (scale === 1 && blob.size >= file.size)) return file;
+
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "player-photo";
+    return new File([blob], `${baseName}.webp`, {
+      type: "image/webp",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
 }
 
 
@@ -106,15 +125,18 @@ function slugifyName(name) {
 async function uploadPlayerImage(file, folder, playerName) {
   if (!file) throw new Error("没有选择文件");
 
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const uploadFile = await optimizeImageForUpload(file);
+  const extensionByType = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  const ext = extensionByType[uploadFile.type] || uploadFile.name.split(".").pop()?.toLowerCase() || "jpg";
   const safeName = slugifyName(playerName || Date.now());
   const filePath = `${folder}/${safeName}-${Date.now()}.${ext}`;
 
   const { error } = await supabaseClient.storage
     .from(SUPABASE_BUCKET)
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: true,
+    .upload(filePath, uploadFile, {
+      cacheControl: "31536000",
+      contentType: uploadFile.type || undefined,
+      upsert: false,
     });
 
   if (error) throw error;
@@ -146,6 +168,18 @@ async function deletePlayerImageByUrl(url) {
     .remove([path]);
 
   if (error) throw error;
+}
+
+async function replacePlayerImage(file, folder, playerName, previousUrl) {
+  const nextUrl = await uploadPlayerImage(file, folder, playerName);
+  if (previousUrl && previousUrl !== nextUrl) {
+    try {
+      await deletePlayerImageByUrl(previousUrl);
+    } catch (error) {
+      console.warn("旧图片清理失败:", error);
+    }
+  }
+  return nextUrl;
 }
 
 function safeSetLocalStorage(key, value) {
@@ -547,7 +581,7 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await uploadPlayerImage(file, "players", playerForm.name || "new-player");
+      const url = await replacePlayerImage(file, "players", playerForm.name || "new-player", playerForm.photo);
       setPlayerForm((prev) => ({ ...prev, photo: url }));
       setPageError("");
     } catch (e) {
@@ -563,7 +597,7 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await uploadPlayerImage(file, "cards", playerForm.name || "new-player");
+      const url = await replacePlayerImage(file, "cards", playerForm.name || "new-player", playerForm.cardImage);
       setPlayerForm((prev) => ({ ...prev, cardImage: url }));
       setPageError("");
     } catch (e) {
@@ -609,7 +643,7 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await uploadPlayerImage(file, "players", selectedPlayer.name);
+      const url = await replacePlayerImage(file, "players", selectedPlayer.name, selectedPlayer.photo);
       updatePlayerByName(selectedPlayer.name, { photo: url });
       setPageError("");
     } catch (e) {
@@ -625,7 +659,7 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await uploadPlayerImage(file, "cards", selectedPlayer.name);
+      const url = await replacePlayerImage(file, "cards", selectedPlayer.name, selectedPlayer.cardImage);
       updatePlayerByName(selectedPlayer.name, { cardImage: url });
       setPageError("");
     } catch (e) {
@@ -1175,6 +1209,7 @@ function App() {
         )}
 
         {/* 页面路由 */}
+        <Suspense fallback={<LoadingSpinner text="正在加载页面..." />}>
         {currentView === "dashboard" && (
           <HomeShowcasePage
             clubInfo={clubInfo}
@@ -1370,6 +1405,7 @@ function App() {
             isAdmin={isAdmin}
           />
         )}
+        </Suspense>
 
         {/* 高级功能入口 */}
         <div className="advanced-features-bar">

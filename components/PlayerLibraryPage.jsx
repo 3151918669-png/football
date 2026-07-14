@@ -69,7 +69,7 @@ function PlayerLibraryPage({
         </div>
       </div>
 
-      {isAdmin && <PlayerImportPanel onImport={importPlayers} disabled={loading} />}
+      {isAdmin && <PlayerImportPanel players={players} onImport={importPlayers} disabled={loading} />}
 
       <PlayerForm
         playerForm={playerForm}

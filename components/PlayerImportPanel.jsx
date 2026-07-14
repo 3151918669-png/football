@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 
-const TEMPLATE_HEADERS = ["序号", "姓名", "号码", "场上位置", "籍贯", "年龄", "惯用脚", "球衣尺码", "入队日期", "状态", "标签", "简介"];
-const TEMPLATE_ROW = ["1", "张三", "10", "前腰/CAM", "江阴市", "22", "右脚", "L", "2026-07-01", "在队", "队长,定位球", "负责中场组织"];
+const TEMPLATE_HEADERS = ["序号", "姓名", "号码", "场上位置", "分组", "籍贯", "年龄", "惯用脚", "球衣尺码", "入队日期", "状态", "场上角色", "标签", "简介"];
+const TEMPLATE_ROW = ["1", "张三", "10", "前腰/CAM", "中场", "江阴市", "22", "右脚", "L", "2026-07-01", "在队", "组织核心", "队长,定位球", "负责中场组织"];
 
 const HEADER_ALIASES = {
   序号: "rosterOrder", order: "rosterOrder",
@@ -102,21 +102,51 @@ function parsePlayers(raw) {
     : { players: [], error: "没有识别到有效球员，请检查姓名和号码。" };
 }
 
-function PlayerImportPanel({ onImport, disabled }) {
+function downloadCsv(filename, rows) {
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function PlayerImportPanel({ players = [], onImport, disabled }) {
   const [raw, setRaw] = useState("");
   const [message, setMessage] = useState("");
   const fileRef = useRef(null);
   const parsed = useMemo(() => parsePlayers(raw), [raw]);
 
   const downloadTemplate = () => {
-    const csv = [TEMPLATE_HEADERS, TEMPLATE_ROW].map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\r\n");
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "江特FC-球员导入模板.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadCsv("江特FC-球员导入模板.csv", [TEMPLATE_HEADERS, TEMPLATE_ROW]);
+  };
+
+  const downloadRoster = () => {
+    const rows = [...players]
+      .sort((a, b) => Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999))
+      .map((player) => [
+        player.rosterOrder || "",
+        player.name || "",
+        player.number || "",
+        player.position || "",
+        player.category || "",
+        player.hometown || "",
+        player.age || "",
+        player.dominantFoot || "",
+        player.shirtSize || "",
+        player.joinedAt || "",
+        player.status || "",
+        player.role || "",
+        Array.isArray(player.tags) ? player.tags.join(",") : player.tags || "",
+        player.summary || "",
+      ]);
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    downloadCsv(`江特FC-球员名单-${date}.csv`, [TEMPLATE_HEADERS, ...rows]);
   };
 
   const readFile = (file) => {
@@ -148,6 +178,7 @@ function PlayerImportPanel({ onImport, disabled }) {
           <p>可以从 Excel 直接复制整张表粘贴，也可以下载模板填写后上传 CSV。</p>
         </div>
         <div className="player-import-actions">
+          <button className="small-ghost-btn" type="button" onClick={downloadRoster} disabled={!players.length}>导出当前名单</button>
           <button className="small-ghost-btn" type="button" onClick={downloadTemplate}>下载 Excel 模板</button>
           <button className="small-ghost-btn" type="button" onClick={() => fileRef.current?.click()}>上传 CSV</button>
           <input ref={fileRef} type="file" accept=".csv,.txt,text/csv,text/plain" hidden onChange={(event) => readFile(event.target.files?.[0])} />
