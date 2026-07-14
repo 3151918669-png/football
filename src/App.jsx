@@ -361,13 +361,14 @@ function App() {
         setCloudStatus("已加载");
         setCloudError("");
       }
+      setCloudReady(true);
     } catch (e) {
       setCloudStatus("加载失败");
       setCloudError(e.message || "未知错误");
+      setCloudReady(false);
     } finally {
       setCloudLoading(false);
       setPageLoading(false);
-      setCloudReady(true);
     }
   };
 
@@ -1071,10 +1072,14 @@ function App() {
             )}
             <button
               className={`top-mini-btn ${cloudLoading ? "cloud-pill warn" : cloudStatus === "已同步" || cloudStatus === "已加载" ? "cloud-pill" : ""}`}
-              title={cloudError || "点击立即同步云端数据"}
+              title={cloudError || (isAdmin ? "点击立即保存到云端" : "点击重新读取云端数据")}
               onClick={async () => {
                 try {
-                  await upsertCloudData();
+                  if (isAdmin) {
+                    await upsertCloudData();
+                  } else {
+                    await loadCloudData();
+                  }
                 } catch {
                   // 错误已在函数内处理
                 }
@@ -1090,6 +1095,18 @@ function App() {
             )}
           </div>
         </header>
+
+        {cloudError && (
+          <div className="cloud-error-notice" role="status">
+            <div>
+              <strong>云端暂时无法连接</strong>
+              <span>{isAdmin ? "当前修改尚未保存，请等待 Supabase 恢复后重试。" : "当前显示本机缓存，点击右侧按钮重新读取。"}</span>
+            </div>
+            <button onClick={isAdmin ? upsertCloudData : loadCloudData} disabled={cloudLoading}>
+              {cloudLoading ? "连接中..." : isAdmin ? "重新保存" : "重新读取"}
+            </button>
+          </div>
+        )}
 
         {/* 全局错误提示 */}
         {pageError && (
