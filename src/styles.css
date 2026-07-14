@@ -4359,3 +4359,245 @@ img[loading="lazy"].loaded {
   .player-profile-record div { padding: 12px 7px; }
   .profile-fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ===== Match day center ===== */
+.matchday-center { display: grid; gap: 14px; }
+
+.match-create-panel { margin: 0; border-radius: 20px; }
+.match-create-panel.is-compact { padding-top: 15px; padding-bottom: 15px; background: linear-gradient(90deg, rgba(215, 181, 109, 0.055), rgba(255, 255, 255, 0.025)), var(--panel); }
+.match-create-heading { margin: 0; }
+.match-create-heading small { color: var(--accent); font-size: 0.64rem; font-weight: 950; letter-spacing: 0.16em; }
+.match-create-heading h2 { margin: 4px 0 3px; }
+.match-create-heading p { margin: 0; font-size: 0.75rem; }
+.match-create-form-body { border-top: 1px solid rgba(255, 255, 255, 0.065); margin-top: 16px; padding-top: 16px; }
+
+.matchday-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 340px;
+  border: 1px solid rgba(242, 213, 138, 0.2);
+  border-radius: 28px;
+  padding: 28px clamp(22px, 4vw, 52px);
+  background:
+    linear-gradient(90deg, rgba(4, 13, 25, 0.92), rgba(8, 29, 35, 0.78), rgba(4, 13, 25, 0.92)),
+    repeating-linear-gradient(90deg, rgba(71, 209, 140, 0.06) 0 10%, transparent 10% 20%),
+    #0b2430;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+}
+.matchday-hero::before {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  left: 50%;
+  top: 52%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.matchday-hero::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+.matchday-hero > * { position: relative; z-index: 1; }
+.matchday-status-live { border-color: rgba(71, 209, 140, 0.42); box-shadow: 0 28px 80px rgba(25, 120, 83, 0.18); }
+
+.matchday-hero-topline,
+.matchday-meta-row,
+.matchday-status-actions { display: flex; align-items: center; gap: 12px; }
+.matchday-hero-topline { justify-content: space-between; color: rgba(255, 255, 255, 0.64); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.05em; }
+.matchday-status-pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 999px; padding: 7px 11px; color: var(--accent-2); background: rgba(7, 17, 31, 0.64); letter-spacing: 0; }
+.matchday-status-pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 5px rgba(242, 213, 138, 0.09); }
+.matchday-status-pill.live { color: var(--green); }
+.matchday-status-pill.live i { animation: matchdayPulse 1.7s infinite; }
+.matchday-status-pill.finished { color: var(--sub); }
+@keyframes matchdayPulse { 50% { opacity: 0.35; transform: scale(0.72); } }
+
+.matchday-scoreboard { min-height: 205px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: clamp(20px, 5vw, 74px); }
+.matchday-team { display: grid; justify-items: end; gap: 7px; text-align: right; }
+.matchday-team.away { justify-items: start; text-align: left; }
+.matchday-team strong { max-width: 300px; font-size: clamp(1.3rem, 2.5vw, 2.2rem); line-height: 1.08; }
+.matchday-team small { color: rgba(255, 255, 255, 0.4); font-size: 0.64rem; font-weight: 900; letter-spacing: 0.2em; }
+.matchday-team-mark { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; color: #111; background: linear-gradient(135deg, #fff0b4, var(--accent)); box-shadow: 0 12px 35px rgba(215, 181, 109, 0.23); font-size: 0.74rem; font-weight: 950; }
+.matchday-team-mark.away { color: var(--text); background: linear-gradient(135deg, #263d59, #122238); box-shadow: none; }
+.matchday-score { display: flex; align-items: center; gap: 15px; }
+.matchday-score span { min-width: 72px; font-size: clamp(3.2rem, 7vw, 6.8rem); font-weight: 950; line-height: 0.9; text-align: center; letter-spacing: -0.07em; text-shadow: 0 12px 40px rgba(0, 0, 0, 0.42); }
+.matchday-score b { color: var(--accent); font-size: clamp(1.8rem, 3vw, 3rem); }
+.matchday-meta-row { justify-content: center; flex-wrap: wrap; color: rgba(255, 255, 255, 0.58); font-size: 0.75rem; }
+.matchday-meta-row span { border-right: 1px solid rgba(255, 255, 255, 0.15); padding-right: 12px; }
+.matchday-meta-row span:last-child { border: 0; padding: 0; }
+.matchday-status-actions { position: absolute; right: clamp(22px, 4vw, 52px); bottom: 25px; }
+
+.matchday-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; border: 1px solid var(--border); border-radius: 18px; padding: 6px; background: rgba(9, 21, 37, 0.88); box-shadow: var(--shadow); }
+.matchday-tabs button { min-height: 48px; border: 0; border-radius: 13px; color: var(--sub); background: transparent; font-size: 0.84rem; font-weight: 850; transition: 0.2s ease; }
+.matchday-tabs button:hover { color: var(--text); background: rgba(255, 255, 255, 0.045); }
+.matchday-tabs button.active { color: #111; background: linear-gradient(135deg, var(--accent-2), var(--accent)); box-shadow: 0 10px 25px rgba(215, 181, 109, 0.17); }
+.matchday-tabs button span { display: inline-grid; min-width: 20px; height: 20px; margin-left: 7px; place-items: center; border-radius: 999px; color: inherit; background: rgba(255, 255, 255, 0.1); font-size: 0.66rem; }
+.matchday-tabs button.active span { background: rgba(0, 0, 0, 0.13); }
+
+.matchday-overview-grid { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 14px; }
+.matchday-overview-grid > .panel { margin: 0; border-radius: 22px; }
+.matchday-wide-panel { grid-column: 1 / -1; }
+.matchday-summary-panel .section-head-row small,
+.matchday-detail-panel .section-head-row small,
+.matchday-section-heading small { color: var(--accent); font-size: 0.65rem; font-weight: 950; letter-spacing: 0.16em; }
+.matchday-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.matchday-kpi-grid div { border: 1px solid rgba(255, 255, 255, 0.055); border-radius: 15px; padding: 17px; background: rgba(255, 255, 255, 0.033); }
+.matchday-kpi-grid strong { display: block; margin-bottom: 4px; color: var(--accent-2); font-size: 1.6rem; }
+.matchday-kpi-grid span { color: var(--sub); font-size: 0.7rem; }
+.matchday-info-list { display: grid; gap: 6px; }
+.matchday-info-list div { display: flex; justify-content: space-between; gap: 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding: 11px 0; }
+.matchday-info-list div:last-child { border-bottom: 0; }
+.matchday-info-list span { color: var(--sub); font-size: 0.75rem; }
+.matchday-info-list strong { font-size: 0.82rem; text-align: right; }
+
+.matchday-work-panel { margin: 0; border-radius: 22px; }
+.matchday-section-heading { align-items: flex-end; }
+.matchday-section-heading h2 { margin: 4px 0 3px; }
+.matchday-section-heading p { margin: 0; font-size: 0.77rem; }
+.registration-summary,
+.matchday-toolbar-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.registration-summary span { border: 1px solid var(--border); border-radius: 999px; padding: 7px 10px; color: var(--sub); background: rgba(255, 255, 255, 0.035); font-size: 0.69rem; font-weight: 850; }
+.registration-summary .attending { color: var(--green); border-color: rgba(71, 209, 140, 0.2); }
+.registration-summary .maybe { color: var(--orange); border-color: rgba(255, 180, 84, 0.2); }
+.registration-summary .absent { color: var(--red); border-color: rgba(255, 107, 107, 0.2); }
+
+.registration-player-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.registration-player-card,
+.squad-player-row { min-width: 0; border: 1px solid rgba(255, 255, 255, 0.065); border-radius: 15px; padding: 11px; background: rgba(255, 255, 255, 0.028); display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: 0.2s ease; }
+.registration-player-card.attending { border-color: rgba(71, 209, 140, 0.22); background: rgba(71, 209, 140, 0.045); }
+.registration-player-card.maybe { border-color: rgba(255, 180, 84, 0.2); }
+.registration-player-card.absent { opacity: 0.68; }
+.matchday-player-identity { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.matchday-player-identity > span { flex: 0 0 auto; width: 42px; height: 42px; overflow: hidden; border-radius: 12px; display: grid; place-items: center; color: #111; background: linear-gradient(135deg, var(--accent-2), var(--accent)); font-size: 0.72rem; font-weight: 950; }
+.matchday-player-identity img { width: 100%; height: 100%; object-fit: cover; }
+.matchday-player-identity div { min-width: 0; display: grid; gap: 3px; }
+.matchday-player-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.83rem; }
+.matchday-player-identity small { overflow: hidden; color: var(--sub); text-overflow: ellipsis; white-space: nowrap; font-size: 0.65rem; }
+.registration-actions,
+.squad-role-actions { display: flex; flex: 0 0 auto; gap: 5px; }
+.registration-actions button,
+.squad-role-actions button { border: 1px solid var(--border); border-radius: 9px; padding: 7px 9px; color: var(--sub); background: rgba(255, 255, 255, 0.025); font-size: 0.66rem; font-weight: 850; }
+.registration-actions button.active.attending { color: #071b12; border-color: transparent; background: var(--green); }
+.registration-actions button.active.maybe { color: #261604; border-color: transparent; background: var(--orange); }
+.registration-actions button.active.absent { color: #260909; border-color: transparent; background: var(--red); }
+.registration-view-status { border-radius: 999px; padding: 6px 9px; color: var(--sub); background: rgba(255, 255, 255, 0.05); font-size: 0.68rem; font-weight: 850; }
+.registration-view-status.attending { color: var(--green); }
+.registration-view-status.maybe { color: var(--orange); }
+.registration-view-status.absent { color: var(--red); }
+
+.matchday-squad-settings { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)) 130px; gap: 9px; margin-bottom: 10px; }
+.matchday-squad-settings label,
+.match-event-form label { display: grid; align-content: end; gap: 6px; }
+.matchday-squad-settings label > span,
+.match-event-form label > span { color: var(--sub); font-size: 0.66rem; font-weight: 800; }
+.matchday-squad-settings select,
+.match-event-form input,
+.match-event-form select { margin: 0; }
+.squad-count-box { border: 1px solid rgba(242, 213, 138, 0.15); border-radius: 13px; padding: 8px 12px; display: grid; place-items: center; background: rgba(215, 181, 109, 0.055); }
+.squad-count-box strong { color: var(--accent-2); font-size: 1.35rem; }
+.squad-count-box strong small { font-size: 0.68rem; }
+.squad-count-box span { color: var(--sub); font-size: 0.62rem; }
+.squad-player-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.squad-player-row.starter { border-color: rgba(242, 213, 138, 0.25); background: linear-gradient(90deg, rgba(215, 181, 109, 0.08), rgba(255, 255, 255, 0.025)); }
+.squad-player-row.substitute { border-color: rgba(86, 165, 255, 0.18); }
+.squad-registration-dot { flex: 0 0 auto; width: 7px; height: 7px; margin-left: auto; border-radius: 50%; background: rgba(255, 255, 255, 0.15); }
+.squad-registration-dot.attending { background: var(--green); }
+.squad-registration-dot.maybe { background: var(--orange); }
+.squad-registration-dot.absent { background: var(--red); }
+.squad-role-actions button.active.starter { color: #111; border-color: transparent; background: var(--accent); }
+.squad-role-actions button.active.substitute { color: #06162b; border-color: transparent; background: var(--blue); }
+.squad-role-label { color: var(--sub); font-size: 0.7rem; }
+
+.match-event-form { position: relative; display: grid; grid-template-columns: 80px 160px minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1fr) auto; align-items: end; gap: 8px; border: 1px solid rgba(242, 213, 138, 0.12); border-radius: 17px; margin-bottom: 20px; padding: 14px; background: rgba(215, 181, 109, 0.035); }
+.match-event-form .primary-btn { min-height: 44px; white-space: nowrap; }
+.match-event-error { position: absolute; left: 14px; bottom: -19px; color: var(--red); font-size: 0.67rem; }
+.matchday-empty-timeline { min-height: 190px; display: grid; place-content: center; gap: 7px; text-align: center; }
+.matchday-empty-timeline strong { color: var(--text); }
+.matchday-empty-timeline span { color: var(--sub); font-size: 0.76rem; }
+.match-event-timeline { position: relative; display: grid; gap: 0; padding: 4px 0; }
+.match-event-timeline::before { content: ""; position: absolute; left: 83px; top: 18px; bottom: 18px; width: 1px; background: linear-gradient(var(--accent), rgba(255, 255, 255, 0.06)); }
+.match-event-item { position: relative; min-height: 75px; display: grid; grid-template-columns: 58px 34px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.match-event-minute { color: var(--accent-2); font-size: 1rem; font-weight: 950; text-align: right; }
+.match-event-marker { z-index: 1; display: grid; place-items: center; }
+.match-event-marker i { width: 13px; height: 13px; border: 3px solid var(--panel); border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 2px rgba(86, 165, 255, 0.24); }
+.match-event-item.goal .match-event-marker i { background: var(--green); box-shadow: 0 0 0 2px rgba(71, 209, 140, 0.24); }
+.match-event-item.opponent_goal .match-event-marker i,
+.match-event-item.red_card .match-event-marker i { background: var(--red); box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.24); }
+.match-event-item.yellow_card .match-event-marker i { background: var(--orange); box-shadow: 0 0 0 2px rgba(255, 180, 84, 0.24); }
+.match-event-content { min-width: 0; border: 1px solid rgba(255, 255, 255, 0.055); border-radius: 13px; padding: 12px 14px; background: rgba(255, 255, 255, 0.027); display: grid; gap: 3px; }
+.match-event-content small { color: var(--sub); font-size: 0.62rem; font-weight: 850; letter-spacing: 0.08em; }
+.match-event-content strong { font-size: 0.82rem; }
+.match-event-content span { color: var(--sub); font-size: 0.7rem; }
+.match-event-delete { border: 1px solid rgba(255, 107, 107, 0.16); border-radius: 9px; padding: 7px 9px; color: var(--red); background: rgba(255, 107, 107, 0.055); font-size: 0.65rem; }
+
+.team-match-card.scheduled::before { background: var(--blue); }
+.team-match-card.live::before { background: var(--green); animation: matchdayPulse 1.7s infinite; }
+.result-badge.scheduled { color: var(--blue); background: rgba(86, 165, 255, 0.13); }
+.result-badge.live { color: var(--green); background: rgba(71, 209, 140, 0.13); }
+
+@media (max-width: 1180px) {
+  .match-event-form { grid-template-columns: 80px repeat(2, minmax(150px, 1fr)); }
+  .match-event-form .primary-btn { align-self: end; }
+}
+
+@media (max-width: 900px) {
+  .matchday-scoreboard { gap: 18px; }
+  .matchday-overview-grid { grid-template-columns: 1fr; }
+  .matchday-wide-panel { grid-column: auto; }
+  .matchday-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .matchday-section-heading { align-items: flex-start; flex-direction: column; }
+  .registration-summary,
+  .matchday-toolbar-actions { justify-content: flex-start; }
+  .registration-player-grid,
+  .squad-player-list { grid-template-columns: 1fr; }
+  .matchday-squad-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .matchday-center { gap: 10px; }
+  .matchday-hero { min-height: 310px; border-radius: 22px; padding: 20px 16px 70px; }
+  .matchday-hero::before { width: 190px; height: 190px; }
+  .matchday-hero-topline { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .matchday-scoreboard { min-height: 175px; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; }
+  .matchday-team { gap: 5px; }
+  .matchday-team-mark { width: 44px; height: 44px; font-size: 0.62rem; }
+  .matchday-team strong { font-size: 0.92rem; }
+  .matchday-score { gap: 7px; }
+  .matchday-score span { min-width: 42px; font-size: 3.1rem; }
+  .matchday-score b { font-size: 1.45rem; }
+  .matchday-meta-row { font-size: 0.64rem; }
+  .matchday-status-actions { left: 16px; right: 16px; bottom: 14px; }
+  .matchday-status-actions button { width: 100%; }
+  .matchday-tabs { grid-template-columns: repeat(4, 112px); overflow-x: auto; border-radius: 15px; }
+  .matchday-tabs button { min-height: 44px; }
+  .matchday-work-panel { padding: 15px; }
+  .match-create-heading { align-items: stretch; flex-direction: column; }
+  .match-create-heading button { width: 100%; }
+  .registration-player-card,
+  .squad-player-row { align-items: flex-start; flex-direction: column; }
+  .registration-actions,
+  .squad-role-actions { width: 100%; }
+  .registration-actions button,
+  .squad-role-actions button { flex: 1; min-height: 38px; }
+  .squad-registration-dot { position: absolute; align-self: flex-end; }
+  .matchday-squad-settings { grid-template-columns: 1fr 1fr; }
+  .squad-count-box { min-height: 66px; }
+  .match-event-form { grid-template-columns: 1fr 1fr; padding: 12px; }
+  .match-event-form .event-note-field,
+  .match-event-form .primary-btn { grid-column: 1 / -1; }
+  .match-event-timeline::before { left: 57px; }
+  .match-event-item { grid-template-columns: 38px 22px minmax(0, 1fr); gap: 8px; padding: 5px 0; }
+  .match-event-minute { font-size: 0.8rem; }
+  .match-event-marker i { width: 11px; height: 11px; }
+  .match-event-delete { grid-column: 3; justify-self: start; margin-top: -3px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matchday-status-pill.live i,
+  .team-match-card.live::before { animation: none; }
+}

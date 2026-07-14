@@ -1,4 +1,5 @@
 import React from "react";
+import { getMatchStatus, getMatchStatusLabel } from "../src/matchDay";
 
 function TeamMatchCard({ match, clubInfo, onClick, onDelete }) {
   const getTeamMatchResult = (match) => {
@@ -10,11 +11,13 @@ function TeamMatchCard({ match, clubInfo, onClick, onDelete }) {
   };
 
   const result = getTeamMatchResult(match);
+  const status = getMatchStatus(match);
+  const cardState = status === "finished" ? result : status;
 
   return (
-    <div className={`team-match-card ${result}`} onClick={onClick} style={{ cursor: "pointer" }}>
+    <div className={`team-match-card ${cardState}`} onClick={onClick} style={{ cursor: "pointer" }}>
       <div className="match-top">
-        <span>{match.date}</span>
+        <span>{match.date}{match.time ? ` ${match.time}` : ""}</span>
         <strong>{match.stadium || clubInfo.homeGround}</strong>
       </div>
       <div className="match-vs-area">
@@ -27,8 +30,8 @@ function TeamMatchCard({ match, clubInfo, onClick, onDelete }) {
           <strong>
             {match.ourScore} : {match.opponentScore}
           </strong>
-          <span className={`result-badge ${result}`}>
-            {result === "win" ? "胜" : result === "draw" ? "平" : "负"}
+          <span className={`result-badge ${cardState}`}>
+            {status === "finished" ? (result === "win" ? "胜" : result === "draw" ? "平" : "负") : getMatchStatusLabel(match)}
           </span>
         </div>
         <div className="kit-box">

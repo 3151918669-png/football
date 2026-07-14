@@ -4,6 +4,12 @@ import HomeShowcasePage from "../components/HomeShowcasePage";
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/LoadingSpinner";
 import { supabaseClient } from "./supabaseClient";
 import ContentEditor from "../components/ContentEditor";
+import {
+  deriveMatchFromEvents,
+  getMatchStatus,
+  removeAutoMatchRecords,
+  syncMatchToPlayerRecords,
+} from "./matchDay";
 
 const ClubInfoPage = lazy(() => import("../components/ClubInfoPage"));
 const PlayerLibraryPage = lazy(() => import("../components/PlayerLibraryPage"));
@@ -20,9 +26,10 @@ const WechatShare = lazy(() => import("../components/WechatShare"));
 
 /* ===== 工具函数 ===== */
 function averageRating(matches) {
-  if (!matches?.length) return "-";
-  const total = matches.reduce((sum, m) => sum + Number(m.rating || 0), 0);
-  return (total / matches.length).toFixed(1);
+  const ratedMatches = (matches || []).filter((match) => Number(match.rating) > 0);
+  if (!ratedMatches.length) return "-";
+  const total = ratedMatches.reduce((sum, match) => sum + Number(match.rating), 0);
+  return (total / ratedMatches.length).toFixed(1);
 }
 
 function totalStat(matches, key) {
@@ -47,6 +54,16 @@ function getTeamMatchResult(match) {
   if (our > opponent) return "win";
   if (our === opponent) return "draw";
   return "loss";
+}
+
+function normalizeMatchSquad(squad = {}) {
+  return {
+    formation: squad.formation || "4-3-3",
+    starters: Array.isArray(squad.starters) ? squad.starters : [],
+    substitutes: Array.isArray(squad.substitutes) ? squad.substitutes : [],
+    captain: squad.captain || "",
+    goalkeeper: squad.goalkeeper || "",
+  };
 }
 
 function findPlayerByName(players, name) {
@@ -336,7 +353,7 @@ function App() {
     cardImage: "",
   });
   const [matchForm, setMatchForm] = useState({ date: "", opponent: "", result: "", goals: "", assists: "", rating: "", saves: "", conceded: "", cleanSheet: false, note: "", isMarked: false });
-  const [teamMatchForm, setTeamMatchForm] = useState({ date: "", opponent: "", stadium: "", homeKit: "", awayKit: "", ourScore: "", opponentScore: "", scorers: "", assists: "", bestPlayer: "", note: "" });
+  const [teamMatchForm, setTeamMatchForm] = useState({ date: "", time: "", opponent: "", competition: "友谊赛", stadium: "", homeKit: "", awayKit: "", ourScore: "", opponentScore: "", scorers: "", assists: "", bestPlayer: "", note: "" });
   const [coachMatchForm, setCoachMatchForm] = useState({ date: "", opponent: "", result: "", note: "", isMarked: false });
 
   // --- 导入导出状态 ---
@@ -478,6 +495,11 @@ function App() {
     return teamMatches.filter((m) => getSeasonKey(m.date) === selectedSeason);
   }, [teamMatches, selectedSeason]);
 
+  const completedTeamMatches = useMemo(
+    () => filteredTeamMatches.filter((match) => getMatchStatus(match) === "finished"),
+    [filteredTeamMatches]
+  );
+
   const filteredPlayers = useMemo(() => {
     if (selectedSeason === "全部赛季") return players;
     return players.map((p) => {
@@ -487,7 +509,7 @@ function App() {
   }, [players, selectedSeason]);
 
   const teamStats = useMemo(() => {
-    return filteredTeamMatches.reduce(
+    return completedTeamMatches.reduce(
       (stats, m) => {
         stats.matches++;
         if (getTeamMatchResult(m) === "win") stats.wins++;
@@ -498,7 +520,7 @@ function App() {
       },
       { matches: 0, wins: 0, draws: 0, losses: 0, goals: 0, players: players.length, playerRecords: players.reduce((sum, p) => sum + (p.matches?.length || 0), 0) }
     );
-  }, [filteredTeamMatches, players]);
+  }, [completedTeamMatches, players]);
 
   const ranking = useMemo(() => {
     return players
@@ -548,8 +570,8 @@ function App() {
   }, [players]);
 
   const latestTeamMatch = useMemo(() => {
-    return filteredTeamMatches.length ? filteredTeamMatches[filteredTeamMatches.length - 1] : null;
-  }, [filteredTeamMatches]);
+    return completedTeamMatches.length ? completedTeamMatches[completedTeamMatches.length - 1] : null;
+  }, [completedTeamMatches]);
 
   const selectedPlayer = useMemo(() => findPlayerByName(players, selectedName), [players, selectedName]);
   const selectedCoach = useMemo(() => coaches.find((c) => c.name === selectedCoachName) || coaches[0], [coaches, selectedCoachName]);
@@ -832,17 +854,19 @@ function App() {
   };
 
   const addTeamMatch = () => {
-    if (!requireAdmin()) return;
+    if (!requireAdmin()) return false;
     try {
       if (!teamMatchForm.date || !teamMatchForm.opponent) {
         setPageError("请至少填写日期和对手");
-        return;
+        return false;
       }
 
       const newMatch = {
         id: Date.now(),
         date: teamMatchForm.date,
+        time: teamMatchForm.time || "",
         opponent: teamMatchForm.opponent,
+        competition: teamMatchForm.competition || "友谊赛",
         stadium: teamMatchForm.stadium || clubInfo.homeGround,
         homeKit: teamMatchForm.homeKit || clubInfo.homeKit,
         awayKit: teamMatchForm.awayKit || "",
@@ -853,14 +877,157 @@ function App() {
         bestPlayer: teamMatchForm.bestPlayer || "",
         note: teamMatchForm.note || "",
         matchAwards: {},
+        status: "scheduled",
+        registrations: {},
+        squad: normalizeMatchSquad(),
+        events: [],
       };
 
       setTeamMatches((old) => [...old, newMatch]);
-      setTeamMatchForm({ date: "", opponent: "", stadium: "", homeKit: "", awayKit: "", ourScore: "", opponentScore: "", scorers: "", assists: "", bestPlayer: "", note: "" });
+      setSelectedTeamMatchId(newMatch.id);
+      setTeamMatchForm({ date: "", time: "", opponent: "", competition: "友谊赛", stadium: "", homeKit: "", awayKit: "", ourScore: "", opponentScore: "", scorers: "", assists: "", bestPlayer: "", note: "" });
       setPageError("");
+      return true;
     } catch (e) {
       setPageError("添加比赛失败：" + (e.message || "未知错误"));
+      return false;
     }
+  };
+
+  const updateTeamMatch = (matchId, updater, syncWhenFinished = false) => {
+    const currentMatch = teamMatches.find((match) => String(match.id) === String(matchId));
+    if (!currentMatch) return null;
+    const updatedMatch = typeof updater === "function" ? updater(currentMatch) : { ...currentMatch, ...updater };
+    setTeamMatches((current) => current.map((match) => (
+      String(match.id) === String(matchId) ? updatedMatch : match
+    )));
+    if (syncWhenFinished && getMatchStatus(updatedMatch) === "finished") {
+      setPlayers((current) => syncMatchToPlayerRecords(current, updatedMatch));
+    }
+    return updatedMatch;
+  };
+
+  const setMatchRegistration = (matchId, playerName, status) => {
+    if (!requireAdmin()) return;
+    updateTeamMatch(matchId, (match) => {
+      const registrations = { ...(match.registrations || {}) };
+      if (status) registrations[playerName] = { status, updatedAt: new Date().toISOString() };
+      else delete registrations[playerName];
+      return { ...match, registrations };
+    });
+  };
+
+  const setMatchSquadRole = (matchId, playerName, role) => {
+    if (!requireAdmin()) return;
+    const currentMatch = teamMatches.find((match) => String(match.id) === String(matchId));
+    if (!currentMatch) return;
+    const currentSquad = normalizeMatchSquad(currentMatch.squad);
+    const nextStarters = currentSquad.starters.filter((name) => name !== playerName);
+    const nextSubstitutes = currentSquad.substitutes.filter((name) => name !== playerName);
+
+    if (role === "starter") {
+      if (nextStarters.length >= 11) {
+        setPageError("首发名单最多选择 11 人，请先移除一名首发球员。");
+        return;
+      }
+      nextStarters.push(playerName);
+    }
+    if (role === "substitute") nextSubstitutes.push(playerName);
+
+    setPageError("");
+    updateTeamMatch(matchId, {
+      ...currentMatch,
+      squad: {
+        ...currentSquad,
+        starters: nextStarters,
+        substitutes: nextSubstitutes,
+        captain: nextStarters.includes(currentSquad.captain) ? currentSquad.captain : "",
+        goalkeeper: nextStarters.includes(currentSquad.goalkeeper) ? currentSquad.goalkeeper : "",
+      },
+    }, true);
+  };
+
+  const updateMatchSquadMeta = (matchId, key, value) => {
+    if (!requireAdmin()) return;
+    updateTeamMatch(matchId, (match) => ({
+      ...match,
+      squad: { ...normalizeMatchSquad(match.squad), [key]: value },
+    }), true);
+  };
+
+  const importTacticsToMatch = (matchId) => {
+    if (!requireAdmin()) return;
+    const knownNames = new Set(players.map((player) => player.name));
+    const starters = [...new Set(tacticsPositions.map((player) => player.name).filter((name) => knownNames.has(name)))].slice(0, 11);
+    if (!starters.length) {
+      setPageError("当前战术板还没有球员，请先在阵容页面设置战术板。");
+      return;
+    }
+    const goalkeeper = starters.find((name) => {
+      const player = players.find((item) => item.name === name);
+      return player?.category === "守门员" || String(player?.position || "").includes("门将");
+    }) || "";
+    updateTeamMatch(matchId, (match) => {
+      const squad = normalizeMatchSquad(match.squad);
+      return {
+        ...match,
+        squad: {
+          ...squad,
+          starters,
+          substitutes: squad.substitutes.filter((name) => !starters.includes(name)),
+          captain: starters.includes(squad.captain) ? squad.captain : "",
+          goalkeeper,
+        },
+      };
+    }, true);
+    setPageError("");
+  };
+
+  const addTeamMatchEvent = (matchId, eventForm) => {
+    if (!requireAdmin()) return;
+    const event = {
+      id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      minute: Math.max(0, Number(eventForm.minute || 0)),
+      type: eventForm.type,
+      player: eventForm.player || "",
+      relatedPlayer: eventForm.relatedPlayer || "",
+      note: eventForm.note?.trim() || "",
+      createdAt: new Date().toISOString(),
+    };
+    updateTeamMatch(matchId, (match) => {
+      const updated = deriveMatchFromEvents(match, [...(match.events || []), event]);
+      return getMatchStatus(updated) === "scheduled" ? { ...updated, status: "live" } : updated;
+    }, true);
+    setPageError("");
+  };
+
+  const deleteTeamMatchEvent = (matchId, eventId) => {
+    if (!requireAdmin()) return;
+    if (!window.confirm("确认删除这条比赛事件吗？比分和球员数据会自动重新计算。")) return;
+    updateTeamMatch(matchId, (match) => deriveMatchFromEvents(
+      match,
+      (match.events || []).filter((event) => String(event.id) !== String(eventId))
+    ), true);
+  };
+
+  const setTeamMatchStatus = (matchId, status) => {
+    if (!requireAdmin()) return;
+    const updatedMatch = updateTeamMatch(matchId, (match) => ({
+      ...match,
+      status,
+      finishedAt: status === "finished" ? new Date().toISOString() : match.finishedAt,
+    }));
+    if (updatedMatch && status === "finished") {
+      setPlayers((current) => syncMatchToPlayerRecords(current, updatedMatch));
+      setPageError("");
+    }
+  };
+
+  const deleteTeamMatch = (matchId) => {
+    if (!requireAdmin()) return;
+    setTeamMatches((current) => current.filter((match) => String(match.id) !== String(matchId)));
+    setPlayers((current) => removeAutoMatchRecords(current, matchId));
+    if (String(selectedTeamMatchId) === String(matchId)) setSelectedTeamMatchId("");
   };
 
   const updatePlayerMatchRecord = (playerName, index, updatedMatch) => {
@@ -1215,7 +1382,7 @@ function App() {
             clubInfo={clubInfo}
             teamStats={teamStats}
             latestTeamMatch={latestTeamMatch}
-            recentTeamMatches={filteredTeamMatches.slice(-5)}
+            recentTeamMatches={completedTeamMatches.slice(-5)}
             featuredPlayers={featuredPlayers}
             ranking={ranking}
             mvp={mvp}
@@ -1308,14 +1475,20 @@ function App() {
             setTeamMatchForm={setTeamMatchForm}
             addTeamMatch={addTeamMatch}
             deleteTeamMatch={(id) => {
-              if (!requireAdmin()) return;
-              setTeamMatches((old) => old.filter((m) => m.id !== id));
+              deleteTeamMatch(id);
             }}
             isAdmin={isAdmin}
             selectedTeamMatchId={selectedTeamMatchId}
             setSelectedTeamMatchId={setSelectedTeamMatchId}
             setSelectedName={setSelectedName}
             setView={setView}
+            onSetRegistration={setMatchRegistration}
+            onSetSquadRole={setMatchSquadRole}
+            onUpdateSquadMeta={updateMatchSquadMeta}
+            onImportTactics={importTacticsToMatch}
+            onAddEvent={addTeamMatchEvent}
+            onDeleteEvent={deleteTeamMatchEvent}
+            onSetMatchStatus={setTeamMatchStatus}
           />
         )}
 
