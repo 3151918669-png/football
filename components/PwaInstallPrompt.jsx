@@ -97,7 +97,7 @@ const PwaInstallPrompt = () => {
             <span role="img" aria-label="app">📱</span>
           </div>
           <div className="pwa-prompt-title">
-            <h3>安装城市猎人FC应用</h3>
+            <h3>安装江特FC应用</h3>
             <p>获得更好的体验，支持离线使用</p>
           </div>
           <button className="pwa-close-btn" onClick={handleDismiss} aria-label="关闭">

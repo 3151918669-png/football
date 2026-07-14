@@ -5,7 +5,7 @@ function buildInitialPositions(bestLineup, players) {
   bestLineup["前场"].forEach((p, i) => lineup.push({ ...p, x: 25 + i * 25, y: 18 }));
   bestLineup["中场"].forEach((p, i) => lineup.push({ ...p, x: 30 + i * 20, y: 43 }));
   bestLineup["后卫"].filter((p) => p.position !== "GK").slice(0, 4).forEach((p, i) => lineup.push({ ...p, x: 20 + i * 20, y: 72 }));
-  const gk = players.find((p) => p.position === "GK");
+  const gk = players.find((p) => p.position === "GK" || p.category === "守门员" || String(p.position || "").includes("门将"));
   if (gk) lineup.push({ ...gk, x: 50, y: 90 });
   return lineup;
 }

@@ -11,15 +11,12 @@ import RankingsPage from "../components/RankingsPage";
 import OperationsPage from "../components/OperationsPage";
 import AwardsPage from "../components/AwardsPage";
 import CoachPage from "../components/CoachPage";
-import PlayerPhotoCard from "../components/PlayerPhotoCard";
 import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/LoadingSpinner";
 import { supabaseClient } from "./supabaseClient";
 import ContentEditor from "../components/ContentEditor";
 import TrainingPage from "../components/TrainingPage";
 
 const WechatShare = lazy(() => import("../components/WechatShare"));
-const AdvancedStats = lazy(() => import("../components/AdvancedStats"));
-const AIAnalysis = lazy(() => import("../components/AIAnalysis"));
 
 /* ===== 工具函数 ===== */
 function averageRating(matches) {
@@ -36,34 +33,6 @@ function getSeasonKey(date) {
   if (!date) return "未知赛季";
   const year = parseInt(date.slice(0, 4), 10);
   return isNaN(year) ? "未知赛季" : `${year}-${year + 1}`;
-}
-
-function clampAbility(value) {
-  return Math.max(0, Math.min(99, Number(value) || 0));
-}
-
-function calculateAbilityChange(match, player) {
-  const base = Number(match.rating || 0);
-  const goals = Number(match.goals || 0);
-  const assists = Number(match.assists || 0);
-  if (!base) return 0;
-  let change = base >= 8.5 ? 3 : base >= 7.5 ? 2 : base >= 6.5 ? 1 : base >= 5.5 ? 0 : base >= 4.5 ? -1 : -2;
-  if (match.result === "win") change += 1;
-  if (match.result === "loss") change -= 1;
-  change += goals;
-  if (assists >= 2) change += 1;
-  return change;
-}
-
-function recalculatePlayerAfterMatches(player) {
-  const matches = player.matches || [];
-  let ability = Number(player.baseAbility || player.ability || 0);
-  const recalculated = matches.map((m) => {
-    const change = calculateAbilityChange(m, player);
-    ability = clampAbility(ability + change);
-    return { ...m, abilityChange: change, abilityAfterMatch: ability };
-  });
-  return { ...player, matches: recalculated, ability: clampAbility(ability) };
 }
 
 function getStatus(rating) {
@@ -199,17 +168,46 @@ function safeGetLocalStorage(key, defaultValue) {
 /* ===== 初始数据 ===== */
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "football2026";
 
+const PLAYER_ROSTER_VERSION = "player-sheet-2026-v1";
+
 const initialPlayers = [
-  { name: "陈杰", number: "7", category: "前场", position: "ST", role: "锋线杀手", ability: 78, potential: 85, attributes: { 速度: 82, 射门: 80, 盘带: 75, 传球: 68, 防守: 42, 体能: 74 }, tags: ["速度型", "射手"], summary: "球队进攻核心，擅长突破和射门。", suggestions: ["加强盘带练习", "提升传球视野"], photo: "", cardImage: "", matches: [] },
-  { name: "李明", number: "10", category: "中场", position: "CAM", role: "组织核心", ability: 76, potential: 82, attributes: { 速度: 68, 射门: 72, 盘带: 80, 传球: 82, 防守: 55, 体能: 70 }, tags: ["技术型", "传球大师"], summary: "中场发动机，负责组织进攻和最后一传。", suggestions: ["提升射门精度", "加强体能训练"], photo: "", cardImage: "", matches: [] },
-  { name: "王强", number: "4", category: "后卫", position: "CB", role: "铁血后卫", ability: 74, potential: 78, attributes: { 速度: 62, 射门: 40, 盘带: 55, 传球: 60, 防守: 82, 体能: 75 }, tags: ["防守型", "头球好"], summary: "后防中坚，擅长高空球和一对一防守。", suggestions: ["提升出球能力", "加强速度训练"], photo: "", cardImage: "", matches: [] },
-  { name: "赵磊", number: "9", category: "前场", position: "LW", role: "边路爆点", ability: 72, potential: 80, attributes: { 速度: 84, 射门: 68, 盘带: 78, 传球: 65, 防守: 35, 体能: 72 }, tags: ["速度型", "突破好手"], summary: "边路快马，利用速度撕开防线。", suggestions: ["加强射门训练", "提升传中质量"], photo: "", cardImage: "", matches: [] },
-  { name: "张鹏", number: "8", category: "中场", position: "CM", role: "全能中场", ability: 70, potential: 76, attributes: { 速度: 65, 射门: 62, 盘带: 68, 传球: 70, 防守: 66, 体能: 78 }, tags: ["均衡型", "跑动覆盖"], summary: "B2B中场，攻防两端都能发挥作用。", suggestions: ["强化专项训练", "提升传球精准度"], photo: "", cardImage: "", matches: [] },
-  { name: "刘洋", number: "11", category: "前场", position: "RW", role: "边锋", ability: 68, potential: 77, attributes: { 速度: 76, 射门: 65, 盘带: 72, 传球: 62, 防守: 38, 体能: 68 }, tags: ["速度型", "内切好手"], summary: "右边锋，擅长内切射门和底线传中。", suggestions: ["提升对抗能力", "加强左脚训练"], photo: "", cardImage: "", matches: [] },
-  { name: "周涛", number: "5", category: "后卫", position: "CB", role: "稳健中卫", ability: 66, potential: 74, attributes: { 速度: 58, 射门: 38, 盘带: 50, 传球: 55, 防守: 76, 体能: 70 }, tags: ["防守型", "位置感好"], summary: "经验丰富的中后卫，选位出色。", suggestions: ["提升速度", "加强长传训练"], photo: "", cardImage: "", matches: [] },
-  { name: "吴浩", number: "6", category: "中场", position: "CDM", role: "防守型中场", ability: 65, potential: 73, attributes: { 速度: 60, 射门: 45, 盘带: 58, 传球: 62, 防守: 74, 体能: 72 }, tags: ["防守型", "拦截好"], summary: "中场屏障，负责拦截和扫荡。", suggestions: ["提升出球能力", "加强体能储备"], photo: "", cardImage: "", matches: [] },
-  { name: "郑超", number: "3", category: "后卫", position: "LB", role: "进攻型边卫", ability: 64, potential: 72, attributes: { 速度: 72, 射门: 48, 盘带: 62, 传球: 60, 防守: 64, 体能: 70 }, tags: ["速度型", "助攻能力强"], summary: "左路飞翼，攻守兼备。", suggestions: ["提升防守意识", "加强传中训练"], photo: "", cardImage: "", matches: [] },
-];
+  { rosterOrder: 1, name: "陆梓鑫", number: "3", category: "后卫", position: "后卫/LB", hometown: "江阴市延陵路", age: "23", dominantFoot: "左脚", shirtSize: "L" },
+  { rosterOrder: 2, name: "谭嘉铭", number: "10", category: "前场", position: "前锋/ST\n前腰/CAM", hometown: "江阴徐霞客", age: "28", dominantFoot: "右脚", shirtSize: "L" },
+  { rosterOrder: 3, name: "张力", number: "16", category: "前场", position: "前锋/LW", hometown: "江阴市澄江街道", age: "24", dominantFoot: "左脚", shirtSize: "L" },
+  { rosterOrder: 4, name: "张冬晨", number: "8", category: "前场", position: "边锋/RW\n前腰/CAM", hometown: "江阴市云亭街道", age: "24", dominantFoot: "右脚", shirtSize: "XL" },
+  { rosterOrder: 5, name: "苏锴昊", number: "1", category: "守门员", position: "门将", hometown: "江阴市澄江街道", age: "18", dominantFoot: "右脚", shirtSize: "3xl" },
+  { rosterOrder: 6, name: "陈志昊", number: "76", category: "守门员", position: "门将", hometown: "江阴市澄江街道", age: "18", dominantFoot: "右脚", shirtSize: "Xl" },
+  { rosterOrder: 7, name: "潘均毅", number: "7", category: "前场", position: "前锋/边锋/后卫", hometown: "江阴青阳镇", age: "24", dominantFoot: "左右脚", shirtSize: "L" },
+  { rosterOrder: 8, name: "周杰", number: "21", category: "前场", position: "边锋", hometown: "江阴市青阳镇", age: "33", dominantFoot: "右脚", shirtSize: "L" },
+  { rosterOrder: 9, name: "徐嘉浩", number: "20", category: "后卫", position: "后卫/中场", hometown: "暂住证   江阴市澄江街道", age: "18", dominantFoot: "右脚", shirtSize: "XL" },
+  { rosterOrder: 10, name: "卞嘉铭", number: "6", category: "中场", position: "中场", hometown: "江阴市", age: "18", dominantFoot: "右脚", shirtSize: "2xl" },
+  { rosterOrder: 11, name: "徐智洋", number: "19", category: "前场", position: "边锋", hometown: "江阴市华士镇", age: "18", dominantFoot: "右脚", shirtSize: "L" },
+  { rosterOrder: 12, name: "章兮兮", number: "33", category: "中场", position: "后腰/前卫", hometown: "江阴市周庄镇", age: "22", dominantFoot: "右脚", shirtSize: "L" },
+  { rosterOrder: 13, name: "贾玉乐", number: "9", category: "前场", position: "中锋", hometown: "", age: "25", dominantFoot: "左脚", shirtSize: "4xl" },
+  { rosterOrder: 14, name: "戴天麒", number: "17", category: "中场", position: "中场", hometown: "江阴市", age: "18", dominantFoot: "右脚", shirtSize: "2xl" },
+  { rosterOrder: 15, name: "赵俊楠", number: "77", category: "前场", position: "前锋", hometown: "江阴市", age: "17", dominantFoot: "右脚", shirtSize: "3xl" },
+  { rosterOrder: 16, name: "徐煊哲", number: "36", category: "后卫", position: "后卫/中场", hometown: "江阴市澄江街道", age: "22", dominantFoot: "右脚", shirtSize: "L" },
+  { rosterOrder: 17, name: "黄非凡", number: "88", category: "前场", position: "前腰/边锋", hometown: "江阴市青阳镇", age: "27", dominantFoot: "右脚", shirtSize: "xl" },
+  { rosterOrder: 18, name: "李可炜", number: "92", category: "中场", position: "中场", hometown: "江阴市青阳镇", age: "27", dominantFoot: "左脚", shirtSize: "L" },
+  { rosterOrder: 19, name: "沈宁", number: "22", category: "前场", position: "前锋／后腰", hometown: "江阴市澄江街道", age: "26", dominantFoot: "左脚", shirtSize: "XL" },
+  { rosterOrder: 20, name: "何逸凡", number: "24", category: "后卫", position: "后卫", hometown: "江阴市澄江街道", age: "29", dominantFoot: "右脚", shirtSize: "XL" },
+  { rosterOrder: 30, name: "麻伟华", number: "10", category: "", position: "", hometown: "", age: "", dominantFoot: "", shirtSize: "l" },
+  { rosterOrder: 31, name: "吴俊", number: "13", category: "", position: "", hometown: "", age: "", dominantFoot: "", shirtSize: "2xl" },
+  { rosterOrder: 32, name: "吴易玮", number: "11", category: "", position: "", hometown: "", age: "", dominantFoot: "", shirtSize: "l" },
+].map((player) => ({ ...player, role: "", joinedAt: "", status: "", tags: [], summary: "", photo: "", cardImage: "", matches: [] }));
+
+function migratePlayersTo2026Roster(cloudPlayers = []) {
+  const existingByName = new Map(cloudPlayers.map((player) => [player.name, player]));
+  return initialPlayers.map((player) => {
+    const existing = existingByName.get(player.name);
+    return {
+      ...player,
+      photo: existing?.photo || "",
+      cardImage: existing?.cardImage || "",
+      matches: Array.isArray(existing?.matches) ? existing.matches : [],
+    };
+  });
+}
 
 const initialCoachData = [
   { name: "陈教练", role: "主教练", roleKey: "head", focus: "战术体系搭建", desc: "执教10年，擅长4-3-3和3-5-2阵型。", initials: "陈教", matches: [] },
@@ -218,27 +216,45 @@ const initialCoachData = [
 ];
 
 const initialClubInfo = {
-  name: "城市猎人 FC",
-  shortName: "CH",
-  city: "深圳",
-  homeGround: "深圳湾体育中心",
-  homeKit: "蓝白条纹",
-  awayKit: "纯白",
-  slogan: "猎心不改，城就未来！",
-  description: "城市猎人 FC 成立于 2020 年，是一支深圳业余足球俱乐部，活跃于深圳各大业余联赛。我们追求快乐足球与竞技水平的平衡，欢迎热爱足球的你加入！",
+  name: "江特FC",
+  shortName: "江特",
+  city: "江阴",
+  homeGround: "",
+  homeKit: "",
+  awayKit: "",
+  slogan: "因热爱相聚，为球队而战！",
+  description: "江特FC球队官网，记录球员、比赛与球队成长。",
   homeKitImage: "",
   awayKitImage: "",
   thirdKitImage: "",
 };
 
-const categories = ["前场", "中场", "后卫", "守门员"];
+function migrateClubInfo(storedClubInfo = {}) {
+  const normalizedName = String(storedClubInfo.name || "").replace(/\s+/g, "");
+  if (normalizedName && normalizedName !== "城市猎人FC") {
+    return { ...initialClubInfo, ...storedClubInfo };
+  }
+  return {
+    ...initialClubInfo,
+    homeKitImage: storedClubInfo.homeKitImage || "",
+    awayKitImage: storedClubInfo.awayKitImage || "",
+    thirdKitImage: storedClubInfo.thirdKitImage || "",
+  };
+}
+
+const categories = ["前场", "中场", "后卫", "守门员", ""];
 
 /* ===== App 主组件 ===== */
 function App() {
   // --- 数据状态 ---
-  const [players, setPlayers] = useState(() => safeGetLocalStorage("fm_players", initialPlayers));
+  const [players, setPlayers] = useState(() => {
+    const stored = safeGetLocalStorage("fm_players", initialPlayers);
+    return localStorage.getItem("fm_playerRosterVersion") === PLAYER_ROSTER_VERSION
+      ? stored
+      : migratePlayersTo2026Roster(stored);
+  });
   const [coaches, setCoaches] = useState(() => safeGetLocalStorage("fm_coaches", initialCoachData));
-  const [clubInfo, setClubInfo] = useState(() => safeGetLocalStorage("fm_clubInfo", initialClubInfo));
+  const [clubInfo, setClubInfo] = useState(() => migrateClubInfo(safeGetLocalStorage("fm_clubInfo", initialClubInfo)));
   const [teamMatches, setTeamMatches] = useState(() => safeGetLocalStorage("fm_teamMatches", []));
   const [manualAwards, setManualAwards] = useState(() => safeGetLocalStorage("fm_manualAwards", { topScorer: "", assistKing: "", bestDefender: "", bestCoach: "" }));
   const [nextMatch, setNextMatch] = useState(() => safeGetLocalStorage("fm_nextMatch", { opponent: "", date: "", time: "", stadium: "", type: "友谊赛", lineup: "", note: "" }));
@@ -264,8 +280,6 @@ function App() {
   const [loginError, setLoginError] = useState("");
 
   // --- 高级功能状态 ---
-  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
-  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
   const [showWechatShare, setShowWechatShare] = useState(false);
   const [contentEditMode, setContentEditMode] = useState(false);
 
@@ -273,14 +287,17 @@ function App() {
   const [playerForm, setPlayerForm] = useState({
     name: "",
     number: "",
-    category: "前场",
+    category: "",
     position: "",
     role: "",
-    ability: "65",
-    potential: "70",
+    hometown: "",
+    age: "",
+    dominantFoot: "",
+    shirtSize: "",
+    joinedAt: "",
+    status: "",
     tags: "",
     summary: "",
-    suggestions: "",
     photo: "",
     cardImage: "",
   });
@@ -298,6 +315,7 @@ function App() {
 
   /* ===== localStorage 持久化 ===== */
   useEffect(() => { safeSetLocalStorage("fm_players", players); }, [players]);
+  useEffect(() => { localStorage.setItem("fm_playerRosterVersion", PLAYER_ROSTER_VERSION); }, []);
   useEffect(() => { safeSetLocalStorage("fm_coaches", coaches); }, [coaches]);
   useEffect(() => { safeSetLocalStorage("fm_clubInfo", clubInfo); }, [clubInfo]);
   useEffect(() => { safeSetLocalStorage("fm_teamMatches", teamMatches); }, [teamMatches]);
@@ -307,17 +325,20 @@ function App() {
   useEffect(() => { safeSetLocalStorage("fm_tacticsPositions", tacticsPositions); }, [tacticsPositions]);
   useEffect(() => { safeSetLocalStorage("fm_trainingSessions", trainingSessions); }, [trainingSessions]);
   useEffect(() => { safeSetLocalStorage("fm_isAdmin", isAdmin); }, [isAdmin]);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, [view, selectedName]);
 
   /* ===== 云端：构建/应用数据载荷 ===== */
   const buildTeamPayload = () => {
-    return { players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, trainingSessions, savedAt: new Date().toISOString() };
+    return { players, playerRosterVersion: PLAYER_ROSTER_VERSION, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, trainingSessions, savedAt: new Date().toISOString() };
   };
 
   const applyTeamPayload = (payload) => {
     try {
-      if (payload.players) setPlayers(payload.players);
+      if (payload.players) {
+        setPlayers(payload.playerRosterVersion === PLAYER_ROSTER_VERSION ? payload.players : migratePlayersTo2026Roster(payload.players));
+      }
       if (payload.coaches) setCoaches(payload.coaches);
-      if (payload.clubInfo) setClubInfo(payload.clubInfo);
+      if (payload.clubInfo) setClubInfo(migrateClubInfo(payload.clubInfo));
       if (payload.teamMatches) setTeamMatches(payload.teamMatches);
       if (payload.manualAwards) setManualAwards(payload.manualAwards);
       if (payload.nextMatch) setNextMatch(payload.nextMatch);
@@ -353,7 +374,6 @@ function App() {
   const loadCloudData = async () => {
     try {
       setCloudLoading(true);
-      setPageLoading(true);
       const { data, error } = await supabaseClient.from("team_state").select("data").eq("id", "main").single();
       if (error) throw error;
       if (data?.data) {
@@ -368,7 +388,6 @@ function App() {
       setCloudReady(false);
     } finally {
       setCloudLoading(false);
-      setPageLoading(false);
     }
   };
 
@@ -451,7 +470,7 @@ function App() {
     return players
       .map((p) => ({ ...p, avgRating: averageRating(p.matches || []), status: getStatus(averageRating(p.matches || [])) }))
       .filter((p) => p.avgRating !== "-")
-      .sort((a, b) => Number(b.avgRating) - Number(a.avgRating) || b.ability - a.ability);
+      .sort((a, b) => Number(b.avgRating) - Number(a.avgRating) || (b.matches?.length || 0) - (a.matches?.length || 0));
   }, [players]);
 
   const mvp = useMemo(() => {
@@ -460,13 +479,15 @@ function App() {
   }, [ranking]);
 
   const featuredPlayers = useMemo(() => {
-    return [...players].sort((a, b) => b.ability - a.ability).slice(0, 4);
+    return [...players]
+      .sort((a, b) => Number(Boolean(b.photo)) - Number(Boolean(a.photo)) || (b.matches?.length || 0) - (a.matches?.length || 0) || Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999))
+      .slice(0, 4);
   }, [players]);
 
   const awardStats = useMemo(() => {
     const topScorer = [...players].sort((a, b) => totalStat(b.matches || [], "goals") - totalStat(a.matches || [], "goals"));
     const assistKing = [...players].sort((a, b) => totalStat(b.matches || [], "assists") - totalStat(a.matches || [], "assists"));
-    const bestDefender = [...players].sort((a, b) => (b.attributes?.防守 || 0) - (a.attributes?.防守 || 0));
+    const bestDefender = players.filter((player) => player.category === "后卫").sort((a, b) => (b.matches?.length || 0) - (a.matches?.length || 0));
     const coachRanking = coaches
       .map((c) => {
         const totalMatches = (c.matches || []).length;
@@ -485,9 +506,10 @@ function App() {
   }, [players, coaches]);
 
   const bestLineup = useMemo(() => {
-    const fw = [...players.filter((p) => p.category === "前场")].sort((a, b) => b.ability - a.ability).slice(0, 3);
-    const mf = [...players.filter((p) => p.category === "中场")].sort((a, b) => b.ability - a.ability).slice(0, 3);
-    const df = [...players.filter((p) => p.category === "后卫")].sort((a, b) => b.ability - a.ability).slice(0, 4);
+    const byAvailability = (a, b) => (b.matches?.length || 0) - (a.matches?.length || 0) || Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999);
+    const fw = [...players.filter((p) => p.category === "前场")].sort(byAvailability).slice(0, 3);
+    const mf = [...players.filter((p) => p.category === "中场")].sort(byAvailability).slice(0, 3);
+    const df = [...players.filter((p) => p.category === "后卫")].sort(byAvailability).slice(0, 4);
     return { 前场: fw, 中场: mf, 后卫: df };
   }, [players]);
 
@@ -646,38 +668,9 @@ function App() {
 
   const handleUpdateSelectedPlayerField = (key, value) => {
     if (!requireAdmin() || !selectedPlayer) return;
-    updatePlayerByName(selectedPlayer.name, { [key]: value });
-  };
-
-  const handleUpdateSelectedPlayerAttributes = (nextAttributes) => {
-    if (!requireAdmin() || !selectedPlayer) return;
-    updatePlayerByName(selectedPlayer.name, {
-      attributes: {
-        ...(selectedPlayer.attributes || {}),
-        ...nextAttributes,
-      },
-    });
-  };
-
-  /* ===== 球员操作 ===== */
-  const updateSelectedPlayerAttribute = (key, value) => {
-    if (!requireAdmin()) return;
-    setPlayers((old) =>
-      old.map((player) =>
-        player.name === selectedName
-          ? { ...player, attributes: { ...player.attributes, [key]: clampAbility(value) } }
-          : player
-      )
-    );
-  };
-
-  const updateSelectedPlayerCore = (key, value) => {
-    if (!requireAdmin()) return;
-    setPlayers((old) =>
-      old.map((player) =>
-        player.name === selectedName ? { ...player, [key]: clampAbility(value) } : player
-      )
-    );
+    const currentName = selectedPlayer.name;
+    updatePlayerByName(currentName, { [key]: value });
+    if (key === "name") setSelectedName(value);
   };
 
   const addPlayer = () => {
@@ -691,10 +684,6 @@ function App() {
         setPageError("请填写球员号码");
         return;
       }
-      if (!playerForm.position.trim()) {
-        setPageError("请填写球员位置");
-        return;
-      }
       const existing = players.find((p) => p.name === playerForm.name.trim());
       if (existing) {
         setPageError("该球员已存在");
@@ -706,20 +695,15 @@ function App() {
         number: playerForm.number.trim(),
         category: playerForm.category,
         position: playerForm.position.trim(),
-        role: playerForm.role.trim() || "未分配",
-        ability: clampAbility(playerForm.ability || 65),
-        potential: clampAbility(playerForm.potential || 70),
-        attributes: {
-          速度: 60,
-          射门: 60,
-          盘带: 60,
-          传球: 60,
-          防守: 60,
-          体能: 60,
-        },
+        role: playerForm.role.trim(),
+        hometown: playerForm.hometown.trim(),
+        age: playerForm.age.trim(),
+        dominantFoot: playerForm.dominantFoot.trim(),
+        shirtSize: playerForm.shirtSize.trim(),
+        joinedAt: playerForm.joinedAt,
+        status: playerForm.status,
         tags: playerForm.tags ? playerForm.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
-        summary: playerForm.summary || "暂无简介",
-        suggestions: playerForm.suggestions ? playerForm.suggestions.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        summary: playerForm.summary.trim(),
         photo: playerForm.photo || "",
         cardImage: playerForm.cardImage || "",
         matches: [],
@@ -729,14 +713,17 @@ function App() {
       setPlayerForm({
         name: "",
         number: "",
-        category: "前场",
+        category: "",
         position: "",
         role: "",
-        ability: "65",
-        potential: "70",
+        hometown: "",
+        age: "",
+        dominantFoot: "",
+        shirtSize: "",
+        joinedAt: "",
+        status: "",
         tags: "",
         summary: "",
-        suggestions: "",
         photo: "",
         cardImage: "",
       });
@@ -744,6 +731,30 @@ function App() {
     } catch (e) {
       setPageError("添加球员失败：" + (e.message || "未知错误"));
     }
+  };
+
+  const importPlayers = (incomingPlayers) => {
+    if (!requireAdmin()) return "请先登录管理员账号";
+    const existingByName = new Map(players.map((player) => [player.name, player]));
+    let added = 0;
+    let updated = 0;
+    const mergedIncoming = incomingPlayers.map((incoming, index) => {
+      const existing = existingByName.get(incoming.name);
+      if (existing) updated += 1;
+      else added += 1;
+      return {
+        ...(existing || {}),
+        ...incoming,
+        rosterOrder: incoming.rosterOrder || existing?.rosterOrder || players.length + index + 1,
+        photo: existing?.photo || incoming.photo || "",
+        cardImage: existing?.cardImage || "",
+        matches: existing?.matches || [],
+      };
+    });
+    const incomingNames = new Set(mergedIncoming.map((player) => player.name));
+    setPlayers((current) => [...current.filter((player) => !incomingNames.has(player.name)), ...mergedIncoming]);
+    setPageError("");
+    return `导入完成：新增 ${added} 人，更新 ${updated} 人`;
   };
 
   const addMatchRecord = () => {
@@ -770,15 +781,12 @@ function App() {
         cleanSheet: Boolean(matchForm.cleanSheet),
         note: matchForm.note || "暂无备注",
         isMarked: Boolean(matchForm.isMarked),
-        abilityChange: 0,
-        abilityAfterMatch: 0,
       };
 
       setPlayers((old) =>
         old.map((player) => {
           if (player.name !== selectedName) return player;
-          const updated = { ...player, matches: [...(player.matches || []), newMatch] };
-          return recalculatePlayerAfterMatches(updated);
+          return { ...player, matches: [...(player.matches || []), newMatch] };
         })
       );
 
@@ -828,8 +836,7 @@ function App() {
         if (player.name !== playerName) return player;
         const newMatches = [...(player.matches || [])];
         newMatches[index] = updatedMatch;
-        const updated = { ...player, matches: newMatches };
-        return recalculatePlayerAfterMatches(updated);
+        return { ...player, matches: newMatches };
       })
     );
   };
@@ -840,8 +847,7 @@ function App() {
       old.map((player) => {
         if (player.name !== playerName) return player;
         const newMatches = (player.matches || []).filter((_, i) => i !== index);
-        const updated = { ...player, matches: newMatches };
-        return recalculatePlayerAfterMatches(updated);
+        return { ...player, matches: newMatches };
       })
     );
   };
@@ -1200,9 +1206,8 @@ function App() {
             isAdmin={isAdmin}
             clubInfo={clubInfo}
             onUploadPhoto={handleUploadPlayerFormPhoto}
-            onUploadCard={handleUploadPlayerFormCard}
             onDeletePhoto={handleDeletePlayerFormPhoto}
-            onDeleteCard={handleDeletePlayerFormCard}
+            importPlayers={importPlayers}
           />
         )}
 
@@ -1212,7 +1217,7 @@ function App() {
             <aside className="player-list">
               {categories.map((category) => (
                 <div className="player-group" key={category}>
-                  <h3>{category}</h3>
+                  <h3>{category || "未分组"}</h3>
                   {players
                     .filter((p) => p.category === category)
                     .sort((a, b) => Number(a.number || 0) - Number(b.number || 0))
@@ -1224,7 +1229,7 @@ function App() {
                       >
                         <span>#{player.number}</span>
                         <strong>{player.name}</strong>
-                        <small>{player.position} | 能力 {player.ability}</small>
+                        <small>{player.position || "位置待补充"}</small>
                       </button>
                     ))}
                 </div>
@@ -1243,15 +1248,10 @@ function App() {
               }}
               onDelete={(index) => deletePlayerMatchRecord(selectedPlayer.name, index)}
               editable={isAdmin}
-              onAttributeUpdate={updateSelectedPlayerAttribute}
-              onCoreUpdate={updateSelectedPlayerCore}
               isAdmin={isAdmin}
               onUploadPhoto={handleUploadSelectedPlayerPhoto}
-              onUploadCard={handleUploadSelectedPlayerCard}
               onDeletePhoto={handleDeleteSelectedPlayerPhoto}
-              onDeleteCard={handleDeleteSelectedPlayerCard}
               onUpdateField={handleUpdateSelectedPlayerField}
-              onUpdateAttributes={handleUpdateSelectedPlayerAttributes}
             />
           </div>
         )}
@@ -1375,47 +1375,11 @@ function App() {
         <div className="advanced-features-bar">
           <button 
             className="advanced-feature-btn" 
-            onClick={() => setShowAdvancedStats(!showAdvancedStats)}
-          >
-            📊 {showAdvancedStats ? "隐藏" : "显示"}高级统计
-          </button>
-          <button 
-            className="advanced-feature-btn" 
-            onClick={() => setShowAIAnalysis(!showAIAnalysis)}
-          >
-            🤖 {showAIAnalysis ? "隐藏" : "显示"}AI分析
-          </button>
-          <button 
-            className="advanced-feature-btn" 
             onClick={() => setShowWechatShare(!showWechatShare)}
           >
             📱 {showWechatShare ? "隐藏" : "显示"}微信分享
           </button>
         </div>
-
-        {/* 高级统计组件 */}
-        {showAdvancedStats && (
-          <Suspense fallback={<LoadingSpinner text="正在加载高级统计..." />}>
-          <AdvancedStats
-            players={filteredPlayers}
-            teamMatches={filteredTeamMatches}
-            coaches={coaches}
-            clubInfo={clubInfo}
-          />
-          </Suspense>
-        )}
-
-        {/* AI分析组件 */}
-        {showAIAnalysis && (
-          <Suspense fallback={<LoadingSpinner text="正在加载 AI 分析..." />}>
-          <AIAnalysis
-            players={filteredPlayers}
-            onAnalysisComplete={(result) => {
-              console.log('AI分析完成:', result);
-            }}
-          />
-          </Suspense>
-        )}
 
         {/* 微信分享组件 */}
         {showWechatShare && (

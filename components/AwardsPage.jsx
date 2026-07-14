@@ -113,8 +113,8 @@ function AwardsPage({
           title="最佳防守"
           icon="🛡️"
           name={bestDefender}
-          value={awardStats.bestDefender ? `防守 ${awardStats.bestDefender?.attributes?.防守 || "-"}` : "-"}
-          desc="防守能力最高"
+          value={awardStats.bestDefender ? `${awardStats.bestDefender?.matches?.length || 0} 场` : "-"}
+          desc="后卫出勤表现"
         />
         <AwardCard
           title="最佳教练"

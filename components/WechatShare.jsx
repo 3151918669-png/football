@@ -41,7 +41,7 @@ const WECHAT_CONFIG = {
 };
 
 const WechatShare = ({ 
-  title = '城市猎人FC - 足球球队官网',
+  title = '江特FC - 足球球队官网',
   desc = '',
   link = window.location.href,
   imgUrl = '/icons/icon-512x512.png',
@@ -222,12 +222,12 @@ const WechatShare = ({
     // 根据分享类型构建不同的分享内容
     switch (type) {
       case 'player':
-        shareTitle = shareContent.playerName 
-          ? `${shareContent.playerName} - 球员卡` 
-          : '球员数据分享';
+        shareTitle = shareContent.playerName
+          ? `${shareContent.playerName} - 球员档案`
+          : '球员档案分享';
         shareDesc = shareContent.playerStats 
-          ? `能力值: ${shareContent.playerStats} | 查看详细数据`
-          : '查看球员详细数据和比赛记录';
+          ? `${shareContent.playerStats} | 查看完整档案`
+          : '查看球员资料和比赛记录';
         shareImg = shareContent.playerPhoto || '/icons/player-share.png';
         break;
 
@@ -266,7 +266,7 @@ const WechatShare = ({
       desc: shareDesc,
       link: link,
       imgUrl: shareImg,
-      timelineTitle: shareContent.timelineTitle || `${shareTitle} | 城市猎人FC`
+      timelineTitle: shareContent.timelineTitle || `${shareTitle} | 江特FC`
     };
   }, [title, desc, link, imgUrl, shareContent, type]);
 

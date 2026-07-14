@@ -66,7 +66,7 @@ function HomeShowcasePage({
           <small>{clubInfo.description}</small>
           <div className="home-hero-actions">
             <button className="primary-btn" onClick={() => setView("playerLibrary")}>
-              查看球员卡墙
+              查看球员名单
             </button>
             <button className="small-ghost-btn" onClick={() => setView("teamMatches")}>
               进入比赛详情
@@ -210,7 +210,7 @@ function HomeShowcasePage({
         <div className="section-head-row">
           <h2>核心球员展示</h2>
           <button className="small-ghost-btn" onClick={() => setView("playerLibrary")}>
-            FC26 卡片墙
+            查看完整名单
           </button>
         </div>
         <div className="home-featured-grid">
@@ -235,10 +235,10 @@ function HomeShowcasePage({
               <div className="featured-player-copy">
                 <span>#{player.number}</span>
                 <strong>{player.name}</strong>
-                <small>能力 {player.ability}</small>
-                <em>{player.role}</em>
+                <small>{player.position || "位置待补充"}</small>
+                <em>{player.dominantFoot || player.hometown || "资料待补充"}</em>
               </div>
-              <b className="featured-ability">{player.ability}</b>
+              <b className="featured-appearances">{player.matches?.length || 0}<small>场</small></b>
             </button>
           ))}
         </div>

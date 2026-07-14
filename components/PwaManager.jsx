@@ -170,7 +170,7 @@ const PwaManager = () => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(registration => {
         registration.showNotification('测试通知', {
-          body: '这是来自城市猎人FC的测试推送通知',
+          body: '这是来自江特FC的测试推送通知',
           icon: '/icons/icon-192x192.png',
           badge: '/icons/icon-72x72.png',
           vibrate: [200, 100, 200],

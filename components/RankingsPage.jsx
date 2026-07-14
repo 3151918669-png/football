@@ -159,7 +159,7 @@ function RankingsPage({ players, teamMatches, ranking, teamStats }) {
                   <th>姓名</th>
                   <th>位置</th>
                   <th>出场次数</th>
-                  <th>能力</th>
+                  <th>近期状态</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,7 +169,7 @@ function RankingsPage({ players, teamMatches, ranking, teamStats }) {
                     <td><strong>{p.name}</strong></td>
                     <td>{p.position}</td>
                     <td><span className="ability-up">{p.count}</span></td>
-                    <td>{p.ability}</td>
+                    <td>{p.status || "—"}</td>
                   </tr>
                 ))}
               </tbody>

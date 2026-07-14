@@ -23,7 +23,6 @@ function MatchTable({ matches, onToggleMark, onEdit, onDelete, editable }) {
             <th>助攻</th>
             <th>评分</th>
             <th>门将数据</th>
-            <th>能力变化</th>
             {editable && <th>操作</th>}
           </tr>
         </thead>
@@ -41,15 +40,6 @@ function MatchTable({ matches, onToggleMark, onEdit, onDelete, editable }) {
               <td>{match.assists || 0}</td>
               <td>{match.rating || "-"}</td>
               <td>{match.saves || match.conceded || match.cleanSheet ? `${match.saves || 0} 扑救 / ${match.conceded || 0} 失球${match.cleanSheet ? " / 零封" : ""}` : "-"}</td>
-              <td>
-                {match.abilityChange > 0 ? (
-                  <span className="ability-up">+{match.abilityChange}</span>
-                ) : match.abilityChange < 0 ? (
-                  <span className="ability-down">{match.abilityChange}</span>
-                ) : (
-                  <span className="ability-flat">{match.abilityChange || 0}</span>
-                )}
-              </td>
               {editable && (
                 <td>
                   <div className="table-action-group">

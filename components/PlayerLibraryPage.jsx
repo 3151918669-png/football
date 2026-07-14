@@ -1,264 +1,125 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import PlayerForm from "./PlayerForm";
+import PlayerImportPanel from "./PlayerImportPanel";
+
+const GROUPS = ["守门员", "后卫", "中场", "前场", ""];
 
 function PlayerLibraryPage({
   players,
   playerForm,
   setPlayerForm,
   addPlayer,
+  importPlayers,
   setSelectedName,
   setView,
   isAdmin,
-  clubInfo,
   loading = false,
   error = null,
   onUploadPhoto,
-  onUploadCard,
   onDeletePhoto,
-  onDeleteCard,
 }) {
-  const categories = ["前场", "中场", "后卫", "守门员"];
+  const [query, setQuery] = useState("");
+  const [activeGroup, setActiveGroup] = useState("全部");
 
-  const sortedPlayers = [...players].sort(
-    (a, b) => Number(a.number || 0) - Number(b.number || 0)
-  );
+  const filteredPlayers = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    return [...players]
+      .filter((player) => activeGroup === "全部" || (activeGroup === "未分组" ? !player.category : player.category === activeGroup))
+      .filter((player) => !keyword || [player.name, player.number, player.position, player.hometown].some((value) => String(value || "").toLowerCase().includes(keyword)))
+      .sort((a, b) => Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999));
+  }, [players, query, activeGroup]);
 
-  const groupedPlayers = categories.map((category) => ({
+  const groupedPlayers = GROUPS.map((category) => ({
     category,
-    players: sortedPlayers.filter((player) => player.category === category),
-  }));
+    players: filteredPlayers.filter((player) => (player.category || "") === category),
+  })).filter((group) => group.players.length);
 
-  const handleAddPlayer = () => {
-    addPlayer();
-  };
-
-  const getPhotoUrl = (player) => {
-    if (!player) return "";
-    if (typeof player.photo === "string" && player.photo.trim()) {
-      return player.photo.trim();
-    }
-    return "";
-  };
-
-  const openPlayerDetail = (player) => {
-    console.log("准备进入球员详情：", player.name, player);
+  const openPlayer = (player) => {
     setSelectedName(player.name);
     setView("players");
   };
 
-  return (
-    <section className="match-page team-roster-page">
-      <div className="team-roster-hero panel">
-        <div>
-          <span className="home-kicker">TEAM ROSTER</span>
-          <h2>球队名单</h2>
-          <p>
-            原 FC26 卡墙已调整为球队名单墙：展示球员证件照、号码、位置、角色和能力值。
-            点击球员可进入个人主页查看球星卡、能力雷达图和比赛记录。
-          </p>
-        </div>
+  const goalkeeperCount = players.filter((player) => player.category === "守门员").length;
+  const filledProfiles = players.filter((player) => player.position && player.hometown && player.age && player.dominantFoot).length;
 
-        <button className="primary-btn" type="button" onClick={() => setView("rankings")}>
-          查看数据排行榜
-        </button>
+  return (
+    <section className="match-page immersive-roster-page">
+      <div className="panel roster-stage-hero">
+        <div>
+          <span className="home-kicker">JIANGTE FC · SQUAD 2026</span>
+          <h2>一线队球员档案</h2>
+          <p>真实球队名单、个人资料和比赛记录集中管理，快速查找每一名队员。</p>
+        </div>
+        <div className="roster-stage-stats">
+          <div><strong>{players.length}</strong><span>注册球员</span></div>
+          <div><strong>{goalkeeperCount}</strong><span>守门员</span></div>
+          <div><strong>{filledProfiles}</strong><span>资料完整</span></div>
+        </div>
       </div>
+
+      <div className="roster-control-bar">
+        <div className="roster-search-box">
+          <span>⌕</span>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索姓名、号码、位置或籍贯" />
+        </div>
+        <div className="roster-filter-row">
+          {["全部", "守门员", "后卫", "中场", "前场", "未分组"].map((group) => (
+            <button key={group} className={activeGroup === group ? "active" : ""} onClick={() => setActiveGroup(group)}>{group}</button>
+          ))}
+        </div>
+      </div>
+
+      {isAdmin && <PlayerImportPanel onImport={importPlayers} disabled={loading} />}
 
       <PlayerForm
         playerForm={playerForm}
         setPlayerForm={setPlayerForm}
-        onAddPlayer={handleAddPlayer}
+        onAddPlayer={addPlayer}
         isAdmin={isAdmin}
         loading={loading}
         error={error}
         onUploadPhoto={onUploadPhoto}
-        onUploadCard={onUploadCard}
         onDeletePhoto={onDeletePhoto}
-        onDeleteCard={onDeleteCard}
       />
 
-      <div className="roster-group-list">
+      <div className="immersive-roster-groups">
         {groupedPlayers.map((group) => (
-          <section className="panel roster-group-panel" key={group.category}>
+          <section className="panel immersive-roster-group" key={group.category || "ungrouped"}>
             <div className="section-head-row">
-              <h2>{group.category}</h2>
+              <div>
+                <small>POSITION GROUP</small>
+                <h2>{group.category || "未分组"}</h2>
+              </div>
               <span className="roster-count">{group.players.length} 人</span>
             </div>
 
-            <div className="team-roster-grid">
-              {group.players.map((player) => {
-                const photoUrl = getPhotoUrl(player);
-
-                return (
-                  <div
-                    key={`${player.name}-${player.number}`}
-                    className="team-roster-card"
-                    data-position={player.position}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => openPlayerDetail(player)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        openPlayerDetail(player);
-                      }
-                    }}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "88px minmax(0, 1fr)",
-                      alignItems: "center",
-                      gap: "12px",
-                      minHeight: "132px",
-                      overflow: "visible",
-                      cursor: "pointer",
-                      userSelect: "none",
-                    }}
-                  >
-                    <div
-                      className="roster-photo-box"
-                      style={{
-                        width: "88px",
-                        height: "110px",
-                        minWidth: "88px",
-                        minHeight: "110px",
-                        borderRadius: "16px",
-                        overflow: "hidden",
-                        position: "relative",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background:
-                          "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025))",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        flexShrink: 0,
-                        pointerEvents: "none",
-                      }}
-                    >
-                      {photoUrl ? (
-                        <img
-                          src={photoUrl}
-                          alt={player.name}
-                          loading="lazy"
-                          decoding="async"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            console.error("名单照片加载失败：", player.name, photoUrl);
-                            e.currentTarget.style.display = "none";
-                          }}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            objectPosition: "center top",
-                            display: "block",
-                            opacity: 1,
-                            visibility: "visible",
-                            padding: 0,
-                            margin: 0,
-                            border: 0,
-                            position: "static",
-                            zIndex: 2,
-                            pointerEvents: "none",
-                          }}
-                        />
-                      ) : (
-                        <span
-                          style={{
-                            color: "var(--accent-2)",
-                            fontSize: "1.4rem",
-                            fontWeight: 950,
-                          }}
-                        >
-                          #{player.number}
-                        </span>
-                      )}
-                    </div>
-
-                    <div
-                      className="roster-info-box"
-                      style={{
-                        minWidth: 0,
-                        display: "grid",
-                        gap: "5px",
-                        textAlign: "left",
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <div
-                        className="roster-number"
-                        style={{
-                          color: "var(--accent-2)",
-                          fontWeight: 950,
-                          fontSize: "0.82rem",
-                        }}
-                      >
-                        #{player.number}
-                      </div>
-
-                      <strong
-                        style={{
-                          display: "block",
-                          color: "var(--text)",
-                          fontSize: "1.12rem",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {player.name}
-                      </strong>
-
-                      <small
-                        style={{
-                          display: "block",
-                          color: "var(--sub)",
-                          lineHeight: 1.45,
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {player.position}｜{player.role}
-                      </small>
-
-                      <div
-                        className="roster-mini-stats"
-                        style={{
-                          display: "flex",
-                          gap: "7px",
-                          flexWrap: "wrap",
-                          marginTop: "4px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            borderRadius: "999px",
-                            padding: "5px 8px",
-                            background: "rgba(255,255,255,0.06)",
-                            color: "var(--sub)",
-                            fontSize: "0.74rem",
-                            fontWeight: 850,
-                          }}
-                        >
-                          能力 {player.ability}
-                        </span>
-
-                        <span
-                          style={{
-                            borderRadius: "999px",
-                            padding: "5px 8px",
-                            background: "rgba(255,255,255,0.06)",
-                            color: "var(--sub)",
-                            fontSize: "0.74rem",
-                            fontWeight: 850,
-                          }}
-                        >
-                          潜力 {player.potential}
-                        </span>
-                      </div>
-                    </div>
+            <div className="immersive-roster-grid">
+              {group.players.map((player) => (
+                <button key={player.name} className="immersive-player-card" data-category={player.category || "未分组"} onClick={() => openPlayer(player)}>
+                  <div className="immersive-player-photo">
+                    {player.photo ? <img src={player.photo} alt={player.name} loading="lazy" /> : <span>#{player.number}</span>}
+                    <i>{player.status || "在册"}</i>
                   </div>
-                );
-              })}
+                  <div className="immersive-player-info">
+                    <div className="immersive-player-number">#{player.number}</div>
+                    <strong>{player.name}</strong>
+                    <p>{player.position || "位置待补充"}</p>
+                    <div className="player-fact-row">
+                      <span>{player.age ? `${player.age} 岁` : "年龄未填"}</span>
+                      <span>{player.dominantFoot || "惯用脚未填"}</span>
+                      <span>{player.shirtSize ? `${player.shirtSize} 码` : "尺码未填"}</span>
+                    </div>
+                    <small>{player.hometown || "籍贯待补充"}</small>
+                  </div>
+                  <b className="player-card-arrow">↗</b>
+                </button>
+              ))}
             </div>
           </section>
         ))}
       </div>
+
+      {!filteredPlayers.length && <div className="panel empty-match"><p>没有找到符合条件的球员。</p></div>}
     </section>
   );
 }

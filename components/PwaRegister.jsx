@@ -105,7 +105,7 @@ const PwaRegister = () => {
     if (!registration) return;
     
     const options = {
-      body: '城市猎人FC - 测试推送通知',
+      body: '江特FC - 测试推送通知',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-72x72.png',
       vibrate: [200, 100, 200],
