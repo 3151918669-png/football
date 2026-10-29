@@ -1,6 +1,16 @@
 import { validatePayload } from "./clubData";
 
 export async function readTeamState(client) {
+  // The production origin relays public reads so expired browser auth sessions
+  // and browser-to-Supabase connectivity cannot block the public club website.
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    const response=await fetch('/api/team-state',{cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(16000)});
+    const row=await response.json().catch(()=>null);
+    if(!response.ok)throw new Error(row?.error || `球队数据读取失败（${response.status}）`);
+    validatePayload(row?.data);
+    if(!row.updated_at)throw new Error('云端版本信息缺失，已阻止写入。');
+    return row;
+  }
   const { data, error } = await client
     .from("team_state")
     .select("data,updated_at")

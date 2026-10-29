@@ -2149,6 +2149,7 @@ function App() {
             <div className="cloud-error-notice" role="status">
               <div>
                 <strong>云端暂时无法连接</strong>
+                <small style={{display:'block',marginTop:6}}>{cloudError}</small>
                 <span>
                   {isAdmin
                     ? "当前修改尚未保存，请等待 Supabase 恢复后重试。"
