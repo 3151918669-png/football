@@ -127,6 +127,18 @@ function fakeClient(result) {
     },
   };
 }
+test('production reads through the same-origin endpoint without browser auth',async()=>{
+  const previousFetch=globalThis.fetch;
+  globalThis.window={location:{protocol:'https:'}};
+  globalThis.fetch=async(url,options)=>{assert.equal(url,'/api/team-state');assert.equal(options.cache,'no-store');return {ok:true,json:async()=>({data:payload,updated_at:'v1'})}};
+  const client=fakeClient({});
+  try {const result=await readTeamState(client);assert.equal(result.updated_at,'v1');assert.equal(client.calls.length,0)}finally{globalThis.fetch=previousFetch;delete globalThis.window}
+});
+test('production endpoint failure cannot make data ready or trigger a write',async()=>{
+  const previousFetch=globalThis.fetch;globalThis.window={location:{protocol:'https:'}};
+  globalThis.fetch=async()=>({ok:false,json:async()=>({error:'upstream unavailable'})});
+  const client=fakeClient({});try{await assert.rejects(()=>readTeamState(client),/upstream unavailable/);assert.equal(client.calls.length,0)}finally{globalThis.fetch=previousFetch;delete globalThis.window}
+});
 test("invalid cloud payload is rejected", () => {
   for (const value of [
     null,
