@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 // Uses the same public anon credentials and permissions as the existing website.
 // No service-role key or write operations are used by this endpoint.
-function publicConfig() {
+export function publicConfig() {
   let file = {};
   try {
     file = Object.fromEntries(readFileSync(join(process.cwd(), '.env'), 'utf8').split(/\r?\n/).filter(line=>/^VITE_SUPABASE_(URL|ANON_KEY)=/.test(line)).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1).trim().replace(/^['"]|['"]$/g,'')]}));

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { SectionHead } from "./ClubUI";
-import { externalUrl } from "../src/clubData";
+import { externalUrl, publicImageUrl } from "../src/clubData";
 export default function PhotoWall({ photos = [] }) {
   const rail = useRef(null),
     index = useRef(0);
@@ -69,7 +69,7 @@ export default function PhotoWall({ photos = [] }) {
           {photos.map((photo, i) => (
             <figure key={photo.id || i}>
               <img
-                src={photo.url}
+                src={publicImageUrl(photo.url)}
                 alt={photo.caption || `江特FC球队合影 ${i + 1}`}
                 loading="lazy"
               />
@@ -162,7 +162,7 @@ export function GalleryManager({ photos, onChange, uploadImage }) {
       <div className="gallery-admin-list">
         {photos.map((p, i) => (
           <div key={p.id || i}>
-            <img src={p.url} alt={p.caption || "球队合影"} />
+            <img src={publicImageUrl(p.url)} alt={p.caption || "球队合影"} />
             <input
               aria-label={`第${i + 1}张合影说明`}
               value={p.caption || ""}

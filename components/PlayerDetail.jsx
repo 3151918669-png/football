@@ -2,7 +2,7 @@ import React from "react";
 import ImageDropzone from "./ImageDropzone";
 import PlayerFullCardShow from "./PlayerFullCardShow";
 import AbilityRadarCard, { abilityLabels } from "./AbilityRadarCard";
-import { playerCard, uniquePlayerRecords } from "../src/clubData";
+import { playerCard, uniquePlayerRecords, publicImageUrl } from "../src/clubData";
 import MatchTable from "./MatchRecord";
 
 function totalStat(matches, key) {
@@ -234,7 +234,7 @@ function PlayerDetail({
         <div className="player-profile-backdrop" aria-hidden="true" />
         <div className="player-profile-portrait">
           {player.photo ? (
-            <img src={player.photo} alt={player.name} />
+            <img src={publicImageUrl(player.photo)} alt={player.name} />
           ) : (
             <span>#{player.number}</span>
           )}

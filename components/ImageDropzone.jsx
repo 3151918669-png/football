@@ -1,3 +1,4 @@
+import {publicImageUrl} from "../src/clubData";
 import React, { useRef, useState } from "react";
 
 function ImageDropzone({ title, description, value, onUpload, onDelete, uploading = false, fit = "cover" }) {
@@ -69,7 +70,7 @@ function ImageDropzone({ title, description, value, onUpload, onDelete, uploadin
       />
 
       {value ? (
-        <img src={value} alt={`${title}预览`} style={{ objectFit: fit }} />
+        <img src={publicImageUrl(value)} alt={`${title}预览`} style={{ objectFit: fit }} />
       ) : (
         <div className="image-dropzone-icon">＋</div>
       )}

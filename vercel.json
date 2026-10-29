@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "functions": { "api/team-state.js": { "includeFiles": ".env" } },
+  "functions": { "api/team-state.js": { "includeFiles": ".env" }, "api/club-image.js": { "includeFiles": ".env" } },
   "redirects": [
     {
       "source": "/(.*)",

@@ -20,7 +20,10 @@ const {
   payloadSignature,
   applyClubRefresh,
   externalUrl,
+  publicImageUrl,
 } = await import(dataURL);
+test('uploaded original cards use deployed site copies',()=>{assert.equal(playerCard({name:'测试队员',cardImage:'https://example.supabase.co/storage/v1/object/public/player-photos/cards/jiangte-refresh-20261029/card.jpg'}),'/card.jpg')});
+test('new replacement cards and photos use same-origin image reads in production',()=>{globalThis.window={location:{protocol:'https:'}};try{const url='https://example.supabase.co/storage/v1/object/public/player-photos/cards/new-card.webp';assert.equal(playerCard({name:'测试队员',cardImage:url}),'/api/club-image?path=cards%2Fnew-card.webp');assert.equal(publicImageUrl('/assets/club/logo.png'),'/assets/club/logo.png');assert.equal(publicImageUrl('https://other.example/image.jpg'),'https://other.example/image.jpg')}finally{delete globalThis.window}});
 const stateSource = (
   await fs.readFile(new URL("../src/teamState.js", import.meta.url), "utf8")
 ).replace(/from [^;]+;/, "from " + JSON.stringify(dataURL) + ";");

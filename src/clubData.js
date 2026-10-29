@@ -1,9 +1,24 @@
 import cards from "./cardAssets.json";
-export const clubLogo = (club = {}) => club.logo || "/assets/club/logo.png";
+export const clubLogo = (club = {}) => publicImageUrl(club.logo || "/assets/club/logo.png");
 export const clubBackground = (club = {}) =>
-  club.background || "/assets/club/background.jpg";
-export const playerCard = (player = {}) =>
-  player.cardImageRemoved ? "" : player.cardImage || cards[player.name] || "";
+  publicImageUrl(club.background || "/assets/club/background.jpg");
+export function publicImageUrl(value) {
+  if(!value || typeof window === 'undefined' || window.location.protocol !== 'https:') return value || '';
+  try {
+    const url=new URL(value);
+    const prefix='/storage/v1/object/public/player-photos/';
+    if(url.hostname.endsWith('.supabase.co') && url.pathname.startsWith(prefix)) return '/api/club-image?path='+encodeURIComponent(decodeURIComponent(url.pathname.slice(prefix.length)));
+  } catch { /* Relative site assets and data/blob previews stay unchanged. */ }
+  return value;
+}
+export function playerCard(player = {}) {
+  if(player.cardImageRemoved) return '';
+  const bundled=cards[player.name];
+  // This exact uploaded edition is already bundled with the deployed website.
+  // Later administrator replacements keep their own storage URL and image data.
+  if(bundled && player.cardImage?.includes('/cards/jiangte-refresh-20261029/') && player.cardImage.split('/').pop()===bundled.split('/').pop()) return bundled;
+  return publicImageUrl(player.cardImage || bundled || '');
+}
 // Linked player records and their team match describe the same event, not extra appearances.
 export function uniquePlayerRecords(records = []) {
   const map = new Map();
