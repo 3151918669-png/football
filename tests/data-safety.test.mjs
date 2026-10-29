@@ -13,8 +13,14 @@ const dataURL =
       'const cards={"测试队员":"/card.jpg"};',
     ),
   ).toString("base64");
-const { uniquePlayerRecords, validatePayload, playerCard, payloadSignature } =
-  await import(dataURL);
+const {
+  uniquePlayerRecords,
+  validatePayload,
+  playerCard,
+  payloadSignature,
+  applyClubRefresh,
+  externalUrl,
+} = await import(dataURL);
 const stateSource = (
   await fs.readFile(new URL("../src/teamState.js", import.meta.url), "utf8")
 ).replace(/from [^;]+;/, "from " + JSON.stringify(dataURL) + ";");
@@ -43,6 +49,54 @@ const payload = {
   coaches: [],
   extraField: { untouched: true },
 };
+test("requested refresh clears all historical match data and removes specified players", () => {
+  const input = {
+    ...payload,
+    players: [
+      ...payload.players,
+      { name: "吴俊", matches: [{}] },
+      { name: "吴易玮", matches: [] },
+    ],
+    teamMatches: [{ id: "old" }],
+    coaches: [{ name: "教练", matches: [{}] }],
+    clubInfo: { homeGround: "old", honors: [{ name: "保留荣誉" }] },
+    trainingSessions: [{ id: "keep" }],
+  };
+  const next = applyClubRefresh(input);
+  assert.equal(next.players.length, 1);
+  assert.deepEqual(next.players[0].matches, []);
+  assert.deepEqual(next.teamMatches, []);
+  assert.deepEqual(next.coaches[0].matches, []);
+  assert.equal(next.clubInfo.homeGround, "滨江热电");
+  assert.equal(next.clubInfo.honors.length, 1);
+  assert.equal(input.teamMatches.length, 1);
+  assert.equal(next.trainingSessions.length, 1);
+});
+test("refresh is one-time and preserves newly entered matches", () => {
+  const next = applyClubRefresh({ ...payload, clubInfo: {} });
+  next.teamMatches.push({ id: "new" });
+  assert.equal(applyClubRefresh(next).teamMatches.length, 1);
+});
+test("captains and leaders are assigned only to requested five players", () => {
+  const next = applyClubRefresh({
+    ...payload,
+    players: ["谭嘉铭", "章兮兮", "潘均毅", "黄非凡", "陆梓鑫"].map((name) => ({
+      name,
+      matches: [],
+    })),
+  });
+  assert.deepEqual(
+    next.players.map((p) => p.clubRole),
+    ["队长", "队长", "领队", "领队", "领队"],
+  );
+});
+test("replay links reject script URLs", () => {
+  assert.equal(externalUrl("javascript:alert(1)"), "");
+  assert.equal(
+    externalUrl("https://pan.baidu.com/s/test"),
+    "https://pan.baidu.com/s/test",
+  );
+});
 function fakeClient(result) {
   const calls = [];
   const chain = {

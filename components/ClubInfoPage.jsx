@@ -1,3 +1,4 @@
+import { GalleryManager } from "./PhotoWall";
 import React, { useState } from "react";
 import { PageIntro, ClubBadge } from "./ClubUI";
 import { clubLogo, clubBackground } from "../src/clubData";
@@ -106,6 +107,13 @@ export default function ClubInfoPage({
           </div>
           {message && <p role="status">{message}</p>}
         </section>
+      )}
+      {isAdmin && (
+        <GalleryManager
+          photos={clubInfo.gallery || []}
+          onChange={(photos) => change("gallery", photos)}
+          uploadImage={uploadImage}
+        />
       )}
       <section className="panel">
         <h2>球队球衣</h2>

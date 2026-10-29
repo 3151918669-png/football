@@ -74,3 +74,46 @@ export function payloadSignature(payload) {
   const { savedAt, ...data } = payload;
   return JSON.stringify(data);
 }
+
+export const featuredNames = ["谭嘉铭", "章兮兮", "潘均毅", "黄非凡", "陆梓鑫"];
+export function applyClubRefresh(payload) {
+  if (payload.clubInfo?.rosterRefresh === "20261029-v2") return payload;
+  const removed = new Set(["吴俊", "吴易玮"]);
+  return {
+    ...payload,
+    players: payload.players
+      .filter((p) => !removed.has(p.name))
+      .map((p) => ({
+        ...p,
+        matches: [],
+        clubRole: featuredNames.slice(0, 2).includes(p.name)
+          ? "队长"
+          : featuredNames.slice(2).includes(p.name)
+            ? "领队"
+            : p.clubRole || "",
+        ...(cards[p.name]
+          ? { cardImage: p.cardImage || cards[p.name], cardImageRemoved: false }
+          : {}),
+      })),
+    coaches: (payload.coaches || []).map((c) => ({ ...c, matches: [] })),
+    teamMatches: [],
+    tacticsPositions: (payload.tacticsPositions || []).filter(
+      (p) =>
+        !removed.has(p.name) &&
+        payload.players.some((player) => player.name === p.name),
+    ),
+    clubInfo: {
+      ...payload.clubInfo,
+      homeGround: "滨江热电",
+      rosterRefresh: "20261029-v2",
+    },
+  };
+}
+export function externalUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return ["https:", "http:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}

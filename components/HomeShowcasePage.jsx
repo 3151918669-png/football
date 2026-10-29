@@ -1,3 +1,4 @@
+import PhotoWall from "./PhotoWall";
 import React, { useRef } from "react";
 import { ClubBadge, SectionHead, FullPlayerCard, FixtureCard } from "./ClubUI";
 import { clubBackground } from "../src/clubData";
@@ -90,7 +91,14 @@ export default function HomeShowcasePage({
             <button
               aria-label="上一场比赛"
               onClick={() =>
-                rail.current?.scrollBy({ left: -400, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+                rail.current?.scrollBy({
+                  left: -400,
+                  behavior: window.matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                  ).matches
+                    ? "auto"
+                    : "smooth",
+                })
               }
             >
               ←
@@ -98,7 +106,14 @@ export default function HomeShowcasePage({
             <button
               aria-label="下一场比赛"
               onClick={() =>
-                rail.current?.scrollBy({ left: 400, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+                rail.current?.scrollBy({
+                  left: 400,
+                  behavior: window.matchMedia(
+                    "(prefers-reduced-motion: reduce)",
+                  ).matches
+                    ? "auto"
+                    : "smooth",
+                })
               }
             >
               →
@@ -138,7 +153,7 @@ export default function HomeShowcasePage({
             onClick={() => setView("playerLibrary")}
           />
           <div className="home-card-grid">
-            {featuredPlayers.slice(0, 4).map((p) => (
+            {featuredPlayers.slice(0, 5).map((p) => (
               <FullPlayerCard
                 key={p.name}
                 player={p}
@@ -151,6 +166,7 @@ export default function HomeShowcasePage({
           </div>
         </div>
       </section>
+      <PhotoWall photos={clubInfo.gallery || []} />
       <section className="club-story content-width">
         <div className="story-copy">
           <span className="eyebrow">THE CLUB / 我们的球队</span>

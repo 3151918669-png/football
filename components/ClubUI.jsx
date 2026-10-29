@@ -71,7 +71,12 @@ export function FullPlayerCard({ player, onClick }) {
       <div className="club-card-caption">
         <div>
           <small>{player.category || "江特FC"}</small>
-          <h3>{player.name}</h3>
+          <h3>
+            {player.name}{" "}
+            {player.clubRole && (
+              <em className="leadership-badge">{player.clubRole}</em>
+            )}
+          </h3>
         </div>
         <span>#{player.number || "—"} ↗</span>
       </div>

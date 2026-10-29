@@ -10,6 +10,8 @@ import { readTeamState, saveTeamState } from "./teamState";
 import { ClubFooter, PageIntro } from "../components/ClubUI";
 import {
   playerCard,
+  applyClubRefresh,
+  featuredNames,
   uniquePlayerRecords,
   validatePayload,
   payloadSignature,
@@ -907,7 +909,8 @@ function App() {
       setCloudLoading(true);
       const data = await readTeamState(supabaseClient);
       safeSetLocalStorage("fm_beforeCloudLoad", buildTeamPayload());
-      if (!applyTeamPayload(data.data)) throw new Error("云端数据应用失败");
+      if (!applyTeamPayload(applyClubRefresh(data.data)))
+        throw new Error("云端数据应用失败");
       cloudRevision.current = data.updated_at;
       lastSaved.current = null;
       lastAttempted.current = null;
@@ -1083,16 +1086,13 @@ function App() {
     return qualified.length ? qualified[0] : ranking[0] || null;
   }, [ranking]);
 
-  const featuredPlayers = useMemo(() => {
-    return [...players]
-      .sort(
-        (a, b) =>
-          Number(Boolean(playerCard(b))) - Number(Boolean(playerCard(a))) ||
-          (b.matches?.length || 0) - (a.matches?.length || 0) ||
-          Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999),
-      )
-      .slice(0, 4);
-  }, [players]);
+  const featuredPlayers = useMemo(
+    () =>
+      featuredNames
+        .map((name) => players.find((p) => p.name === name))
+        .filter(Boolean),
+    [players],
+  );
 
   const awardStats = useMemo(() => {
     const topScorer = [...filteredPlayers].sort(
@@ -1536,6 +1536,8 @@ function App() {
         time: teamMatchForm.time || "",
         opponent: teamMatchForm.opponent,
         competition: teamMatchForm.competition || "友谊赛",
+        replayUrl: teamMatchForm.replayUrl || "",
+        replayCode: teamMatchForm.replayCode || "",
         stadium: teamMatchForm.stadium || clubInfo.homeGround,
         homeKit: teamMatchForm.homeKit || clubInfo.homeKit,
         awayKit: teamMatchForm.awayKit || "",
