@@ -1,250 +1,255 @@
-import React from "react";
-import { InfoCard } from "./StatisticsPanel";
-
-function HomeShowcasePage({ 
-  clubInfo, 
-  teamStats, 
-  latestTeamMatch, 
-  recentTeamMatches = [],
-  featuredPlayers, 
-  ranking, 
-  mvp, 
-  nextMatch, 
-  setView, 
-  setSelectedName, 
-  setSelectedTeamMatchId 
+import React, { useRef } from "react";
+import { ClubBadge, SectionHead, FullPlayerCard, FixtureCard } from "./ClubUI";
+import { clubBackground } from "../src/clubData";
+import { getMatchStatus } from "../src/matchDay";
+export default function HomeShowcasePage({
+  clubInfo,
+  teamStats,
+  teamMatches = [],
+  featuredPlayers = [],
+  nextMatch,
+  setView,
+  setSelectedName,
+  setSelectedTeamMatchId,
+  manualAwards = {},
 }) {
-  const winRate = teamStats.matches > 0 ? `${((teamStats.wins / teamStats.matches) * 100).toFixed(0)}%` : "-";
-  const matchDate = nextMatch?.date ? new Date(`${nextMatch.date}T${nextMatch.time || "00:00"}`) : null;
-  const daysToMatch = matchDate && !Number.isNaN(matchDate.getTime())
-    ? Math.ceil((matchDate.getTime() - Date.now()) / 86400000)
-    : null;
-  const countdown = daysToMatch === null
-    ? "赛程待公布"
-    : daysToMatch > 1
-      ? `${daysToMatch} 天后开赛`
-      : daysToMatch === 1
-        ? "明天开赛"
-        : daysToMatch === 0
-          ? "今天开赛"
-          : "比赛已结束";
-
-  const latestResult = latestTeamMatch
-    ? Number(latestTeamMatch.ourScore) > Number(latestTeamMatch.opponentScore)
-      ? { key: "win", label: "胜利" }
-      : Number(latestTeamMatch.ourScore) < Number(latestTeamMatch.opponentScore)
-        ? { key: "loss", label: "失利" }
-        : { key: "draw", label: "平局" }
-    : null;
-  const goalsPerMatch = teamStats.matches > 0 ? (teamStats.goals / teamStats.matches).toFixed(1) : "0.0";
-  const recentForm = [...recentTeamMatches].reverse().map((match) => {
-    const ourScore = Number(match.ourScore || 0);
-    const opponentScore = Number(match.opponentScore || 0);
-    if (ourScore > opponentScore) return { key: "win", label: "胜" };
-    if (ourScore < opponentScore) return { key: "loss", label: "负" };
-    return { key: "draw", label: "平" };
-  });
-
+  const rail = useRef(null);
+  const fixtures = [...teamMatches]
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    .slice(0, 6);
+  if (
+    nextMatch?.opponent &&
+    !fixtures.some(
+      (m) => m.date === nextMatch.date && m.opponent === nextMatch.opponent,
+    )
+  )
+    fixtures.unshift({ ...nextMatch, id: "next", status: "scheduled" });
+  const upcoming = fixtures.find((m) => getMatchStatus(m) === "scheduled");
+  const honors = (clubInfo.honors || []).slice(0, 3);
+  const openMatch = (m) => {
+    if (m.id !== "next") setSelectedTeamMatchId(m.id);
+    setView("teamMatches");
+  };
   return (
-    <section className="home-showcase">
-      <div className="home-hero panel">
-        <div className="stadium-scene" aria-hidden="true">
-          <div className="stadium-light stadium-light-left" />
-          <div className="stadium-light stadium-light-right" />
-          <div className="stadium-pitch">
-            <i className="pitch-half-line" />
-            <i className="pitch-center-circle" />
-          </div>
-        </div>
-        <div className="home-hero-copy">
-          <div className="hero-status-row">
-            <span className="home-kicker">{clubInfo.city} Amateur Football Club</span>
-            <span className="season-live"><i /> 2026 SEASON</span>
-          </div>
-          <h2>{clubInfo.name}</h2>
-          <p>{clubInfo.slogan}</p>
-          <small>{clubInfo.description}</small>
-          <div className="home-hero-actions">
-            <button className="primary-btn" onClick={() => setView("playerLibrary")}>
-              查看球员名单
+    <div className="club-home">
+      <section className="club-hero">
+        <img
+          className="hero-background"
+          src={clubBackground(clubInfo)}
+          alt="江特俱乐部品牌背景"
+          fetchPriority="high"
+        />
+        <div className="hero-shade" />
+        <ClubBadge clubInfo={clubInfo} className="hero-watermark" />
+        <div className="hero-copy">
+          <span className="hero-eyebrow">
+            <i /> 江特FC · 官方球队网站
+          </span>
+          <h1>
+            为热爱<span>一起上场。</span>
+          </h1>
+          <p>
+            {clubInfo.slogan || "因热爱相聚，为球队而战。"}
+            <br />
+            {clubInfo.description ||
+              "每一次传递，每一声呐喊，都是我们的足球故事。"}
+          </p>
+          <div className="hero-actions">
+            <button className="club-btn" onClick={() => setView("teamMatches")}>
+              走进比赛日 <span>↗</span>
             </button>
-            <button className="small-ghost-btn" onClick={() => setView("teamMatches")}>
-              进入比赛详情
-            </button>
-          </div>
-          <div className="hero-record-line">
-            <div><strong>{teamStats.wins}</strong><span>胜</span></div>
-            <div><strong>{teamStats.draws}</strong><span>平</span></div>
-            <div><strong>{teamStats.losses}</strong><span>负</span></div>
-            <div><strong>{goalsPerMatch}</strong><span>场均进球</span></div>
-          </div>
-        </div>
-        <div className="home-hero-badge">
-          <span className="identity-label">CLUB IDENTITY</span>
-          <div className="club-big-badge">{clubInfo.shortName || "FC"}</div>
-          <strong>{clubInfo.homeGround}</strong>
-          <span>{clubInfo.homeKit}</span>
-          <small>{teamStats.matches} 场比赛 · {teamStats.goals} 粒进球</small>
-          <div className="recent-form-row">
-            <small>近况</small>
-            <div>
-              {recentForm.length ? recentForm.map((result, index) => (
-                <i key={`${result.key}-${index}`} className={`form-dot ${result.key}`}>{result.label}</i>
-              )) : <em>等待比赛数据</em>}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="home-stat-grid">
-        <InfoCard index="01" title="球队阵容" value={teamStats.players} meta="注册球员" />
-        <InfoCard index="02" title="赛季比赛" value={teamStats.matches} meta={`${teamStats.wins}胜 ${teamStats.draws}平 ${teamStats.losses}负`} />
-        <InfoCard index="03" title="进攻表现" value={teamStats.goals} meta={`场均 ${goalsPerMatch} 球`} />
-        <InfoCard index="04" title="赛季胜率" value={winRate} meta="持续刷新" />
-      </div>
-
-      <div className="home-two-col">
-        <section className="panel next-match-panel">
-          <div className="section-head-row">
-            <h2>下一场比赛</h2>
-            <button className="small-ghost-btn" onClick={() => setView("operations")}>
-              运营设置
-            </button>
-          </div>
-          {nextMatch?.opponent ? (
-            <div className="next-match-card">
-              <div className="match-card-kicker">
-                <span>NEXT MATCH</span>
-                <strong>{countdown}</strong>
-              </div>
-              <h3>
-                {clubInfo.name} vs {nextMatch.opponent}
-              </h3>
-              <strong>
-                {nextMatch.date || "日期待定"} {nextMatch.time || ""}
-              </strong>
-              <p>
-                {nextMatch.stadium || clubInfo.homeGround}｜{nextMatch.type || "友谊赛"}
-              </p>
-              <small>{nextMatch.note || "暂无赛前备注"}</small>
-            </div>
-          ) : (
-            <div className="empty-match">
-              <div className="empty-icon">📅</div>
-              <p>暂无下一场比赛</p>
-              <small>在运营页录入后，首页会自动展示赛前信息。</small>
-            </div>
-          )}
-        </section>
-
-        <section className="panel latest-match-panel">
-          <div className="section-head-row">
-            <h2>最新比赛</h2>
-            <button className="small-ghost-btn" onClick={() => setView("teamMatches")}>
-              全部比赛
-            </button>
-          </div>
-          {latestTeamMatch ? (
-            <div
-              className={`latest-score-card result-${latestResult.key}`}
-              onClick={() => {
-                setSelectedTeamMatchId(latestTeamMatch.id);
-                setView("teamMatches");
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              <b className="match-result-badge">{latestResult.label}</b>
-              <span>
-                {latestTeamMatch.date}｜{latestTeamMatch.stadium}
-              </span>
-              <h3>
-                {clubInfo.name} vs {latestTeamMatch.opponent}
-              </h3>
-              <strong>
-                {latestTeamMatch.ourScore} : {latestTeamMatch.opponentScore}
-              </strong>
-              <p>{latestTeamMatch.note}</p>
-            </div>
-          ) : (
-            <div className="empty-match">
-              <div className="empty-icon">⚽</div>
-              <p>暂无最新比赛</p>
-              <small>录入整场比赛后，官网首页会自动展示最新赛果。</small>
-            </div>
-          )}
-        </section>
-
-        <section className="panel mvp-panel">
-          <div className="section-head-row">
-            <h2>近期核心球员</h2>
-            <button className="small-ghost-btn" onClick={() => setView("rankings")}>
-              排行榜
-            </button>
-          </div>
-          {mvp ? (
             <button
-              className="mvp-show-card"
-              onClick={() => {
-                setSelectedName(mvp.name);
-                setView("players");
-              }}
+              className="club-btn outline"
+              onClick={() => setView("playerLibrary")}
             >
-              <div className="mvp-photo">
-                {mvp.photo ? <img src={mvp.photo} alt={mvp.name} /> : <span>#{mvp.number}</span>}
-              </div>
-              <div className="mvp-copy">
-                <small>FORM PLAYER</small>
-                <strong>{mvp.name}</strong>
-                <span>{mvp.position} · 场均评分 {mvp.avgRating}</span>
-                <p>{mvp.role}</p>
-              </div>
-              <b>{mvp.avgRating}</b>
+              认识我们的球员 <span>→</span>
             </button>
-          ) : (
-            <p>暂无个人评分记录，录入后自动生成近期核心球员。</p>
-          )}
-        </section>
-      </div>
-
-      <section className="panel home-featured-panel">
-        <div className="section-head-row">
-          <h2>核心球员展示</h2>
-          <button className="small-ghost-btn" onClick={() => setView("playerLibrary")}>
-            查看完整名单
-          </button>
+          </div>
+          <div className="hero-signature">
+            <span>JIANGTE</span> FOOTBALL IS OUR LANGUAGE.
+          </div>
         </div>
-        <div className="home-featured-grid">
-          {featuredPlayers.map((player) => (
-            <button
-              key={player.name}
-              className="home-featured-player"
-              data-position={player.position}
-              onClick={() => {
-                setSelectedName(player.name);
-                setView("players");
-              }}
-            >
-              <div className="featured-player-visual">
-                {player.photo ? (
-                  <img src={player.photo} alt={player.name} loading="lazy" decoding="async" />
-                ) : (
-                  <div className="featured-player-placeholder">#{player.number}</div>
-                )}
-                <b className="featured-position">{player.position}</b>
-              </div>
-              <div className="featured-player-copy">
-                <span>#{player.number}</span>
-                <strong>{player.name}</strong>
-                <small>{player.position || "位置待补充"}</small>
-                <em>{player.dominantFoot || player.hometown || "资料待补充"}</em>
-              </div>
-              <b className="featured-appearances">{player.matches?.length || 0}<small>场</small></b>
-            </button>
-          ))}
+        <div className="hero-edge">
+          <span>ONE TEAM. ONE PASSION.</span>
+          <b>01 / 江特FC</b>
         </div>
       </section>
-    </section>
+      <section className="club-fixtures content-width">
+        <SectionHead
+          en="MATCH CENTRE"
+          title="每一场，都全力以赴"
+          action="全部赛程"
+          onClick={() => setView("teamMatches")}
+        />
+        <div className="fixture-heading">
+          <span>
+            赛程与赛果 <i> / </i>{" "}
+            {fixtures.length ? `${fixtures.length} 场比赛` : "等待下一次哨响"}
+          </span>
+          <div className="rail-controls">
+            <button
+              aria-label="上一场比赛"
+              onClick={() =>
+                rail.current?.scrollBy({ left: -400, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+              }
+            >
+              ←
+            </button>
+            <button
+              aria-label="下一场比赛"
+              onClick={() =>
+                rail.current?.scrollBy({ left: 400, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+              }
+            >
+              →
+            </button>
+          </div>
+        </div>
+        <div className="fixture-rail" ref={rail}>
+          {fixtures.map((m) => (
+            <FixtureCard
+              key={m.id}
+              match={m}
+              clubInfo={clubInfo}
+              onClick={() => openMatch(m)}
+            />
+          ))}
+          {!upcoming && (
+            <div className="fixture-empty">
+              <span>NEXT MATCH</span>
+              <h3>期待下一次，一起出发。</h3>
+              <p>新赛程公布后将在这里展示。</p>
+              <button
+                className="text-link"
+                onClick={() => setView("teamMatches")}
+              >
+                查看比赛记录 ↗
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="club-squad">
+        <div className="content-width">
+          <SectionHead
+            en="OUR SQUAD"
+            title="同一抹蓝，同一个我们"
+            action="探索完整阵容"
+            onClick={() => setView("playerLibrary")}
+          />
+          <div className="home-card-grid">
+            {featuredPlayers.slice(0, 4).map((p) => (
+              <FullPlayerCard
+                key={p.name}
+                player={p}
+                onClick={() => {
+                  setSelectedName(p.name);
+                  setView("players");
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="club-story content-width">
+        <div className="story-copy">
+          <span className="eyebrow">THE CLUB / 我们的球队</span>
+          <h2>
+            场上并肩，
+            <br />
+            场下同心。
+          </h2>
+          <p>
+            {clubInfo.description ||
+              "我们因足球相聚。用每一场比赛记录成长，用每一次并肩定义球队。这里是江特FC，也是属于每一位队员的主场。"}
+          </p>
+          <button className="text-link" onClick={() => setView("club")}>
+            了解江特FC <span>↗</span>
+          </button>
+        </div>
+        <div className="story-stats">
+          {[
+            [teamStats.matches, "比赛场次"],
+            [
+              `${teamStats.wins} / ${teamStats.draws} / ${teamStats.losses}`,
+              "胜 / 平 / 负",
+            ],
+            [teamStats.goals, "总进球"],
+            [teamStats.players, "在册球员"],
+          ].map(([value, label]) => (
+            <div key={label}>
+              <b>{value}</b>
+              <span>{label}</span>
+            </div>
+          ))}
+          <small>
+            来自已记录的球队比赛 ·{" "}
+            {teamStats.matches ? "持续记录球队每一步" : "暂无比赛记录"}
+          </small>
+        </div>
+      </section>
+      <section className="club-bottom-features content-width">
+        <button className="lineup-feature" onClick={() => setView("lineup")}>
+          <div className="mini-pitch" aria-hidden="true">
+            <i />
+            <b>4 — 3 — 2 — 1</b>
+          </div>
+          <span className="eyebrow">STARTING XI</span>
+          <h2>
+            找到我们的
+            <br />
+            最佳连接。
+          </h2>
+          <span>探索球队阵容 ↗</span>
+        </button>
+        <div className="honor-feature">
+          <SectionHead
+            en="OUR HONOURS"
+            title="每份荣誉，都属于我们"
+            action="荣誉墙"
+            onClick={() => setView("awards")}
+          />
+          {honors.length ? (
+            honors.map((h) => (
+              <div className="home-honor" key={h.id}>
+                <b>{h.year}</b>
+                <strong>{h.name}</strong>
+                <span>{h.place}</span>
+              </div>
+            ))
+          ) : (
+            <div className="honor-empty">
+              <span>☆</span>
+              <h3>
+                {Object.values(manualAwards).some(Boolean)
+                  ? "记录每一位闪光的队员"
+                  : "荣誉之路，我们一起书写。"}
+              </h3>
+              <p>
+                {Object.values(manualAwards).some(Boolean)
+                  ? "前往荣誉墙查看个人奖项。"
+                  : "暂无已录入的球队荣誉。"}
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="club-partners content-width">
+        <span className="eyebrow">OUR PARTNERS / 同行伙伴</span>
+        {clubInfo.sponsors?.length ? (
+          <div className="partner-list">
+            {clubInfo.sponsors.map((s, i) => (
+              <span key={i}>
+                {s.image ? <img src={s.image} alt={s.name} /> : s.name}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p>
+            携手同行，共赴下一场热爱。<small>合作伙伴信息待公布</small>
+          </p>
+        )}
+      </section>
+    </div>
   );
 }
-
-export default HomeShowcasePage;

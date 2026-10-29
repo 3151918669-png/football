@@ -1,3 +1,5 @@
+import {ClubBadge} from './ClubUI';
+import MatchPitch from './MatchPitch';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   MATCH_EVENT_OPTIONS,
@@ -116,14 +118,14 @@ function MatchDayCenter({
 
         <div className="matchday-scoreboard">
           <div className="matchday-team home">
-            <span className="matchday-team-mark">{clubInfo.shortName || "FC"}</span>
+            <span className="matchday-team-mark"><ClubBadge clubInfo={clubInfo}/></span>
             <strong>{clubInfo.name}</strong>
             <small>HOME</small>
           </div>
           <div className="matchday-score">
-            <span>{match.ourScore ?? 0}</span>
+            <span>{status==="scheduled"?"—":match.ourScore ?? "—"}</span>
             <b>:</b>
-            <span>{match.opponentScore ?? 0}</span>
+            <span>{status==="scheduled"?"—":match.opponentScore ?? "—"}</span>
           </div>
           <div className="matchday-team away">
             <span className="matchday-team-mark away">VS</span>
@@ -269,7 +271,7 @@ function MatchDayCenter({
             <label>
               <span>阵型</span>
               <select value={squad.formation || "4-3-3"} onChange={(event) => onUpdateSquadMeta(match.id, "formation", event.target.value)} disabled={!isAdmin}>
-                {["4-3-3", "4-4-2", "4-2-3-1", "3-5-2", "3-4-3", "自定义"].map((formation) => <option key={formation}>{formation}</option>)}
+                {["4-3-2-1", "4-3-3", "4-4-2", "4-2-3-1", "3-5-2", "3-4-3", "自定义"].map((formation) => <option key={formation}>{formation}</option>)}
               </select>
             </label>
             <label>
@@ -289,6 +291,7 @@ function MatchDayCenter({
             <div className="squad-count-box"><strong>{starters.length}<small>/11</small></strong><span>首发人数</span></div>
           </div>
 
+          <MatchPitch squad={squad} players={players}/>
           <div className="squad-player-list">
             {orderedPlayers.map((player) => {
               const role = starters.includes(player.name) ? "starter" : substitutes.includes(player.name) ? "substitute" : "";

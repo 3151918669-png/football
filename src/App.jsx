@@ -1,7 +1,27 @@
-import React, { Suspense, lazy, useState, useEffect, useMemo } from "react";
+import React, {
+  Suspense,
+  lazy,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
+import { readTeamState, saveTeamState } from "./teamState";
+import { ClubFooter, PageIntro } from "../components/ClubUI";
+import {
+  playerCard,
+  uniquePlayerRecords,
+  validatePayload,
+  payloadSignature,
+  clubLogo,
+} from "./clubData";
 import Navbar from "../components/Navbar";
 import HomeShowcasePage from "../components/HomeShowcasePage";
-import { LoadingSpinner, ErrorMessage, EmptyState } from "../components/LoadingSpinner";
+import {
+  LoadingSpinner,
+  ErrorMessage,
+  EmptyState,
+} from "../components/LoadingSpinner";
 import { supabaseClient } from "./supabaseClient";
 import ContentEditor from "../components/ContentEditor";
 import {
@@ -26,9 +46,14 @@ const WechatShare = lazy(() => import("../components/WechatShare"));
 
 /* ===== 工具函数 ===== */
 function averageRating(matches) {
-  const ratedMatches = (matches || []).filter((match) => Number(match.rating) > 0);
+  const ratedMatches = (matches || []).filter(
+    (match) => Number(match.rating) > 0,
+  );
   if (!ratedMatches.length) return "-";
-  const total = ratedMatches.reduce((sum, match) => sum + Number(match.rating), 0);
+  const total = ratedMatches.reduce(
+    (sum, match) => sum + Number(match.rating),
+    0,
+  );
   return (total / ratedMatches.length).toFixed(1);
 }
 
@@ -45,7 +70,13 @@ function getSeasonKey(date) {
 function getStatus(rating) {
   if (rating === "-") return "-";
   const r = Number(rating);
-  return r >= 7.5 ? "状态火热" : r >= 6.5 ? "状态稳定" : r >= 5.5 ? "状态一般" : "状态低迷";
+  return r >= 7.5
+    ? "状态火热"
+    : r >= 6.5
+      ? "状态稳定"
+      : r >= 5.5
+        ? "状态一般"
+        : "状态低迷";
 }
 
 function getTeamMatchResult(match) {
@@ -78,7 +109,7 @@ function countResults(matches) {
       if (m.result === "loss") record.losses++;
       return record;
     },
-    { wins: 0, draws: 0, losses: 0 }
+    { wins: 0, draws: 0, losses: 0 },
   );
 }
 
@@ -100,12 +131,16 @@ function loadImageFile(file) {
 
 async function optimizeImageForUpload(file) {
   const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
-  if (!supportedTypes.includes(String(file.type || "").toLowerCase())) return file;
+  if (!supportedTypes.includes(String(file.type || "").toLowerCase()))
+    return file;
 
   try {
     const image = await loadImageFile(file);
     const maxSide = 1600;
-    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+    const scale = Math.min(
+      1,
+      maxSide / Math.max(image.naturalWidth, image.naturalHeight),
+    );
     if (scale === 1 && file.size <= 900 * 1024) return file;
 
     const canvas = document.createElement("canvas");
@@ -115,7 +150,9 @@ async function optimizeImageForUpload(file) {
     if (!context) return file;
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.82));
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.82),
+    );
     if (!blob || (scale === 1 && blob.size >= file.size)) return file;
 
     const baseName = file.name.replace(/\.[^.]+$/, "") || "player-photo";
@@ -128,7 +165,6 @@ async function optimizeImageForUpload(file) {
   }
 }
 
-
 const SUPABASE_BUCKET = "player-photos";
 
 function slugifyName(name) {
@@ -140,11 +176,20 @@ function slugifyName(name) {
 }
 
 async function uploadPlayerImage(file, folder, playerName) {
+  if (import.meta.env.VITE_PREVIEW_READ_ONLY === "true")
+    throw new Error("独立预览已关闭云端图片写入，请在正式管理环境上传。");
   if (!file) throw new Error("没有选择文件");
 
   const uploadFile = await optimizeImageForUpload(file);
-  const extensionByType = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-  const ext = extensionByType[uploadFile.type] || uploadFile.name.split(".").pop()?.toLowerCase() || "jpg";
+  const extensionByType = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+  const ext =
+    extensionByType[uploadFile.type] ||
+    uploadFile.name.split(".").pop()?.toLowerCase() ||
+    "jpg";
   const safeName = slugifyName(playerName || Date.now());
   const filePath = `${folder}/${safeName}-${Date.now()}.${ext}`;
 
@@ -189,13 +234,6 @@ async function deletePlayerImageByUrl(url) {
 
 async function replacePlayerImage(file, folder, playerName, previousUrl) {
   const nextUrl = await uploadPlayerImage(file, folder, playerName);
-  if (previousUrl && previousUrl !== nextUrl) {
-    try {
-      await deletePlayerImageByUrl(previousUrl);
-    } catch (error) {
-      console.warn("旧图片清理失败:", error);
-    }
-  }
   return nextUrl;
 }
 
@@ -222,48 +260,307 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "football2026";
 const PLAYER_ROSTER_VERSION = "player-sheet-2026-v1";
 
 const initialPlayers = [
-  { rosterOrder: 1, name: "陆梓鑫", number: "3", category: "后卫", position: "后卫/LB", hometown: "江阴市延陵路", age: "23", dominantFoot: "左脚", shirtSize: "L" },
-  { rosterOrder: 2, name: "谭嘉铭", number: "10", category: "前场", position: "前锋/ST\n前腰/CAM", hometown: "江阴徐霞客", age: "28", dominantFoot: "右脚", shirtSize: "L" },
-  { rosterOrder: 3, name: "张力", number: "16", category: "前场", position: "前锋/LW", hometown: "江阴市澄江街道", age: "24", dominantFoot: "左脚", shirtSize: "L" },
-  { rosterOrder: 4, name: "张冬晨", number: "8", category: "前场", position: "边锋/RW\n前腰/CAM", hometown: "江阴市云亭街道", age: "24", dominantFoot: "右脚", shirtSize: "XL" },
-  { rosterOrder: 5, name: "苏锴昊", number: "1", category: "守门员", position: "门将", hometown: "江阴市澄江街道", age: "18", dominantFoot: "右脚", shirtSize: "3xl" },
-  { rosterOrder: 6, name: "陈志昊", number: "76", category: "守门员", position: "门将", hometown: "江阴市澄江街道", age: "18", dominantFoot: "右脚", shirtSize: "Xl" },
-  { rosterOrder: 7, name: "潘均毅", number: "7", category: "前场", position: "前锋/边锋/后卫", hometown: "江阴青阳镇", age: "24", dominantFoot: "左右脚", shirtSize: "L" },
-  { rosterOrder: 8, name: "周杰", number: "21", category: "前场", position: "边锋", hometown: "江阴市青阳镇", age: "33", dominantFoot: "右脚", shirtSize: "L" },
-  { rosterOrder: 9, name: "徐嘉浩", number: "20", category: "后卫", position: "后卫/中场", hometown: "暂住证   江阴市澄江街道", age: "18", dominantFoot: "右脚", shirtSize: "XL" },
-  { rosterOrder: 10, name: "卞嘉铭", number: "6", category: "中场", position: "中场", hometown: "江阴市", age: "18", dominantFoot: "右脚", shirtSize: "2xl" },
-  { rosterOrder: 11, name: "徐智洋", number: "19", category: "前场", position: "边锋", hometown: "江阴市华士镇", age: "18", dominantFoot: "右脚", shirtSize: "L" },
-  { rosterOrder: 12, name: "章兮兮", number: "33", category: "中场", position: "后腰/前卫", hometown: "江阴市周庄镇", age: "22", dominantFoot: "右脚", shirtSize: "L" },
-  { rosterOrder: 13, name: "贾玉乐", number: "9", category: "前场", position: "中锋", hometown: "", age: "25", dominantFoot: "左脚", shirtSize: "4xl" },
-  { rosterOrder: 14, name: "戴天麒", number: "17", category: "中场", position: "中场", hometown: "江阴市", age: "18", dominantFoot: "右脚", shirtSize: "2xl" },
-  { rosterOrder: 15, name: "赵俊楠", number: "77", category: "前场", position: "前锋", hometown: "江阴市", age: "17", dominantFoot: "右脚", shirtSize: "3xl" },
-  { rosterOrder: 16, name: "徐煊哲", number: "36", category: "后卫", position: "后卫/中场", hometown: "江阴市澄江街道", age: "22", dominantFoot: "右脚", shirtSize: "L" },
-  { rosterOrder: 17, name: "黄非凡", number: "88", category: "前场", position: "前腰/边锋", hometown: "江阴市青阳镇", age: "27", dominantFoot: "右脚", shirtSize: "xl" },
-  { rosterOrder: 18, name: "李可炜", number: "92", category: "中场", position: "中场", hometown: "江阴市青阳镇", age: "27", dominantFoot: "左脚", shirtSize: "L" },
-  { rosterOrder: 19, name: "沈宁", number: "22", category: "前场", position: "前锋／后腰", hometown: "江阴市澄江街道", age: "26", dominantFoot: "左脚", shirtSize: "XL" },
-  { rosterOrder: 20, name: "何逸凡", number: "24", category: "后卫", position: "后卫", hometown: "江阴市澄江街道", age: "29", dominantFoot: "右脚", shirtSize: "XL" },
-  { rosterOrder: 30, name: "麻伟华", number: "10", category: "", position: "", hometown: "", age: "", dominantFoot: "", shirtSize: "l" },
-  { rosterOrder: 31, name: "吴俊", number: "13", category: "", position: "", hometown: "", age: "", dominantFoot: "", shirtSize: "2xl" },
-  { rosterOrder: 32, name: "吴易玮", number: "11", category: "", position: "", hometown: "", age: "", dominantFoot: "", shirtSize: "l" },
-].map((player) => ({ ...player, role: "", joinedAt: "", status: "", tags: [], summary: "", photo: "", cardImage: "", matches: [] }));
+  {
+    rosterOrder: 1,
+    name: "陆梓鑫",
+    number: "3",
+    category: "后卫",
+    position: "后卫/LB",
+    hometown: "江阴市延陵路",
+    age: "23",
+    dominantFoot: "左脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 2,
+    name: "谭嘉铭",
+    number: "10",
+    category: "前场",
+    position: "前锋/ST\n前腰/CAM",
+    hometown: "江阴徐霞客",
+    age: "28",
+    dominantFoot: "右脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 3,
+    name: "张力",
+    number: "16",
+    category: "前场",
+    position: "前锋/LW",
+    hometown: "江阴市澄江街道",
+    age: "24",
+    dominantFoot: "左脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 4,
+    name: "张冬晨",
+    number: "8",
+    category: "前场",
+    position: "边锋/RW\n前腰/CAM",
+    hometown: "江阴市云亭街道",
+    age: "24",
+    dominantFoot: "右脚",
+    shirtSize: "XL",
+  },
+  {
+    rosterOrder: 5,
+    name: "苏锴昊",
+    number: "1",
+    category: "守门员",
+    position: "门将",
+    hometown: "江阴市澄江街道",
+    age: "18",
+    dominantFoot: "右脚",
+    shirtSize: "3xl",
+  },
+  {
+    rosterOrder: 6,
+    name: "陈志昊",
+    number: "76",
+    category: "守门员",
+    position: "门将",
+    hometown: "江阴市澄江街道",
+    age: "18",
+    dominantFoot: "右脚",
+    shirtSize: "Xl",
+  },
+  {
+    rosterOrder: 7,
+    name: "潘均毅",
+    number: "7",
+    category: "前场",
+    position: "前锋/边锋/后卫",
+    hometown: "江阴青阳镇",
+    age: "24",
+    dominantFoot: "左右脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 8,
+    name: "周杰",
+    number: "21",
+    category: "前场",
+    position: "边锋",
+    hometown: "江阴市青阳镇",
+    age: "33",
+    dominantFoot: "右脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 9,
+    name: "徐嘉浩",
+    number: "20",
+    category: "后卫",
+    position: "后卫/中场",
+    hometown: "暂住证   江阴市澄江街道",
+    age: "18",
+    dominantFoot: "右脚",
+    shirtSize: "XL",
+  },
+  {
+    rosterOrder: 10,
+    name: "卞嘉铭",
+    number: "6",
+    category: "中场",
+    position: "中场",
+    hometown: "江阴市",
+    age: "18",
+    dominantFoot: "右脚",
+    shirtSize: "2xl",
+  },
+  {
+    rosterOrder: 11,
+    name: "徐智洋",
+    number: "19",
+    category: "前场",
+    position: "边锋",
+    hometown: "江阴市华士镇",
+    age: "18",
+    dominantFoot: "右脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 12,
+    name: "章兮兮",
+    number: "33",
+    category: "中场",
+    position: "后腰/前卫",
+    hometown: "江阴市周庄镇",
+    age: "22",
+    dominantFoot: "右脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 13,
+    name: "贾玉乐",
+    number: "9",
+    category: "前场",
+    position: "中锋",
+    hometown: "",
+    age: "25",
+    dominantFoot: "左脚",
+    shirtSize: "4xl",
+  },
+  {
+    rosterOrder: 14,
+    name: "戴天麒",
+    number: "17",
+    category: "中场",
+    position: "中场",
+    hometown: "江阴市",
+    age: "18",
+    dominantFoot: "右脚",
+    shirtSize: "2xl",
+  },
+  {
+    rosterOrder: 15,
+    name: "赵俊楠",
+    number: "77",
+    category: "前场",
+    position: "前锋",
+    hometown: "江阴市",
+    age: "17",
+    dominantFoot: "右脚",
+    shirtSize: "3xl",
+  },
+  {
+    rosterOrder: 16,
+    name: "徐煊哲",
+    number: "36",
+    category: "后卫",
+    position: "后卫/中场",
+    hometown: "江阴市澄江街道",
+    age: "22",
+    dominantFoot: "右脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 17,
+    name: "黄非凡",
+    number: "88",
+    category: "前场",
+    position: "前腰/边锋",
+    hometown: "江阴市青阳镇",
+    age: "27",
+    dominantFoot: "右脚",
+    shirtSize: "xl",
+  },
+  {
+    rosterOrder: 18,
+    name: "李可炜",
+    number: "92",
+    category: "中场",
+    position: "中场",
+    hometown: "江阴市青阳镇",
+    age: "27",
+    dominantFoot: "左脚",
+    shirtSize: "L",
+  },
+  {
+    rosterOrder: 19,
+    name: "沈宁",
+    number: "22",
+    category: "前场",
+    position: "前锋／后腰",
+    hometown: "江阴市澄江街道",
+    age: "26",
+    dominantFoot: "左脚",
+    shirtSize: "XL",
+  },
+  {
+    rosterOrder: 20,
+    name: "何逸凡",
+    number: "24",
+    category: "后卫",
+    position: "后卫",
+    hometown: "江阴市澄江街道",
+    age: "29",
+    dominantFoot: "右脚",
+    shirtSize: "XL",
+  },
+  {
+    rosterOrder: 30,
+    name: "麻伟华",
+    number: "10",
+    category: "",
+    position: "",
+    hometown: "",
+    age: "",
+    dominantFoot: "",
+    shirtSize: "l",
+  },
+  {
+    rosterOrder: 31,
+    name: "吴俊",
+    number: "13",
+    category: "",
+    position: "",
+    hometown: "",
+    age: "",
+    dominantFoot: "",
+    shirtSize: "2xl",
+  },
+  {
+    rosterOrder: 32,
+    name: "吴易玮",
+    number: "11",
+    category: "",
+    position: "",
+    hometown: "",
+    age: "",
+    dominantFoot: "",
+    shirtSize: "l",
+  },
+].map((player) => ({
+  ...player,
+  role: "",
+  joinedAt: "",
+  status: "",
+  tags: [],
+  summary: "",
+  photo: "",
+  cardImage: "",
+  matches: [],
+}));
 
 function migratePlayersTo2026Roster(cloudPlayers = []) {
-  const existingByName = new Map(cloudPlayers.map((player) => [player.name, player]));
-  return initialPlayers.map((player) => {
-    const existing = existingByName.get(player.name);
-    return {
-      ...player,
-      photo: existing?.photo || "",
-      cardImage: existing?.cardImage || "",
-      matches: Array.isArray(existing?.matches) ? existing.matches : [],
-    };
-  });
+  return cloudPlayers.map((existing) => ({
+    ...initialPlayers.find((p) => p.name === existing.name),
+    ...existing,
+    matches: Array.isArray(existing.matches) ? existing.matches : [],
+  }));
 }
 
 const initialCoachData = [
-  { name: "陈教练", role: "主教练", roleKey: "head", focus: "战术体系搭建", desc: "执教10年，擅长4-3-3和3-5-2阵型。", initials: "陈教", matches: [] },
-  { name: "王助教", role: "助理教练", roleKey: "assistant", focus: "体能和恢复训练", desc: "负责每日训练计划和球员体能管理。", initials: "王助", matches: [] },
-  { name: "张指导", role: "技术顾问", roleKey: "advisor", focus: "技术动作指导", desc: "前职业球员，专注个人技术打磨。", initials: "张指", matches: [] },
+  {
+    name: "陈教练",
+    role: "主教练",
+    roleKey: "head",
+    focus: "战术体系搭建",
+    desc: "执教10年，擅长4-3-3和3-5-2阵型。",
+    initials: "陈教",
+    matches: [],
+  },
+  {
+    name: "王助教",
+    role: "助理教练",
+    roleKey: "assistant",
+    focus: "体能和恢复训练",
+    desc: "负责每日训练计划和球员体能管理。",
+    initials: "王助",
+    matches: [],
+  },
+  {
+    name: "张指导",
+    role: "技术顾问",
+    roleKey: "advisor",
+    focus: "技术动作指导",
+    desc: "前职业球员，专注个人技术打磨。",
+    initials: "张指",
+    matches: [],
+  },
 ];
 
 const initialClubInfo = {
@@ -299,32 +596,112 @@ const categories = ["前场", "中场", "后卫", "守门员", ""];
 function App() {
   // --- 数据状态 ---
   const [players, setPlayers] = useState(() => {
-    const stored = safeGetLocalStorage("fm_players", initialPlayers);
-    return localStorage.getItem("fm_playerRosterVersion") === PLAYER_ROSTER_VERSION
+    const stored = safeGetLocalStorage("fm_players", []);
+    return localStorage.getItem("fm_playerRosterVersion") ===
+      PLAYER_ROSTER_VERSION
       ? stored
       : migratePlayersTo2026Roster(stored);
   });
-  const [coaches, setCoaches] = useState(() => safeGetLocalStorage("fm_coaches", initialCoachData));
-  const [clubInfo, setClubInfo] = useState(() => migrateClubInfo(safeGetLocalStorage("fm_clubInfo", initialClubInfo)));
-  const [teamMatches, setTeamMatches] = useState(() => safeGetLocalStorage("fm_teamMatches", []));
-  const [manualAwards, setManualAwards] = useState(() => safeGetLocalStorage("fm_manualAwards", { topScorer: "", assistKing: "", bestDefender: "", bestCoach: "" }));
-  const [nextMatch, setNextMatch] = useState(() => safeGetLocalStorage("fm_nextMatch", { opponent: "", date: "", time: "", stadium: "", type: "友谊赛", lineup: "", note: "" }));
-  const [contentEdits, setContentEdits] = useState(() => safeGetLocalStorage("fm_contentEdits", {}));
-  const [tacticsPositions, setTacticsPositions] = useState(() => safeGetLocalStorage("fm_tacticsPositions", []));
-  const [trainingSessions, setTrainingSessions] = useState(() => safeGetLocalStorage("fm_trainingSessions", []));
+  const [coaches, setCoaches] = useState(() =>
+    safeGetLocalStorage("fm_coaches", []),
+  );
+  const [clubInfo, setClubInfo] = useState(() =>
+    migrateClubInfo(safeGetLocalStorage("fm_clubInfo", initialClubInfo)),
+  );
+  const [teamMatches, setTeamMatches] = useState(() =>
+    safeGetLocalStorage("fm_teamMatches", []),
+  );
+  const [manualAwards, setManualAwards] = useState(() =>
+    safeGetLocalStorage("fm_manualAwards", {
+      topScorer: "",
+      assistKing: "",
+      bestDefender: "",
+      bestCoach: "",
+    }),
+  );
+  const [nextMatch, setNextMatch] = useState(() =>
+    safeGetLocalStorage("fm_nextMatch", {
+      opponent: "",
+      date: "",
+      time: "",
+      stadium: "",
+      type: "友谊赛",
+      lineup: "",
+      note: "",
+    }),
+  );
+  const [contentEdits, setContentEdits] = useState(() =>
+    safeGetLocalStorage("fm_contentEdits", {}),
+  );
+  const [tacticsPositions, setTacticsPositions] = useState(() =>
+    safeGetLocalStorage("fm_tacticsPositions", []),
+  );
+  const [trainingSessions, setTrainingSessions] = useState(() =>
+    safeGetLocalStorage("fm_trainingSessions", []),
+  );
 
   // --- 云端状态 ---
   const [cloudStatus, setCloudStatus] = useState("未连接");
   const [cloudError, setCloudError] = useState("");
   const [cloudLoading, setCloudLoading] = useState(false);
   const [cloudReady, setCloudReady] = useState(false);
+  const payloadExtras = useRef({});
+  const cloudRevision = useRef(null);
+  const lastSaved = useRef(null);
+  const lastAttempted = useRef(null);
+  const saveInFlight = useRef(false);
+  const previewReadOnly = import.meta.env.VITE_PREVIEW_READ_ONLY === "true";
 
   // --- UI 状态 ---
-  const [view, setView] = useState("dashboard");
-  const [selectedName, setSelectedName] = useState("");
+  const knownViews = [
+    "dashboard",
+    "teamMatches",
+    "playerLibrary",
+    "players",
+    "rankings",
+    "awards",
+    "club",
+    "lineup",
+    "training",
+    "coach",
+    "operations",
+    "matches",
+  ];
+  const [view, setView] = useState(() =>
+    knownViews.includes(location.hash.slice(1).split("/")[0])
+      ? location.hash.slice(1).split("/")[0]
+      : "dashboard",
+  );
+  useEffect(() => {
+    const onHash = () => {
+      const parts = location.hash.slice(1).split("/");
+      if (knownViews.includes(parts[0])) {
+        setView(parts[0]);
+        if (parts[1]) setSelectedName(decodeURIComponent(parts[1]));
+      }
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  const [selectedName, setSelectedName] = useState(() =>
+    decodeURIComponent(location.hash.slice(1).split("/")[1] || ""),
+  );
+  useEffect(() => {
+    const hash =
+      view === "players" && selectedName
+        ? view + "/" + encodeURIComponent(selectedName)
+        : view;
+    if (location.hash.slice(1) !== hash)
+      history.pushState(null, "", "#" + hash);
+  }, [view, selectedName]);
   const [selectedTeamMatchId, setSelectedTeamMatchId] = useState("");
-  const [selectedCoachName, setSelectedCoachName] = useState(coaches[0]?.name || "");
-  const [isAdmin, setIsAdmin] = useState(() => safeGetLocalStorage("fm_isAdmin", false));
+  const [personalMatchEdit, setPersonalMatchEdit] = useState(null);
+  const [selectedCoachName, setSelectedCoachName] = useState(
+    coaches[0]?.name || "",
+  );
+  const [isAdmin, setIsAdmin] = useState(() =>
+    safeGetLocalStorage("fm_isAdmin", false),
+  );
   const [showLogin, setShowLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -352,9 +729,41 @@ function App() {
     photo: "",
     cardImage: "",
   });
-  const [matchForm, setMatchForm] = useState({ date: "", opponent: "", result: "", goals: "", assists: "", rating: "", saves: "", conceded: "", cleanSheet: false, note: "", isMarked: false });
-  const [teamMatchForm, setTeamMatchForm] = useState({ date: "", time: "", opponent: "", competition: "友谊赛", stadium: "", homeKit: "", awayKit: "", ourScore: "", opponentScore: "", scorers: "", assists: "", bestPlayer: "", note: "" });
-  const [coachMatchForm, setCoachMatchForm] = useState({ date: "", opponent: "", result: "", note: "", isMarked: false });
+  const [matchForm, setMatchForm] = useState({
+    date: "",
+    opponent: "",
+    result: "",
+    goals: "",
+    assists: "",
+    rating: "",
+    saves: "",
+    conceded: "",
+    cleanSheet: false,
+    note: "",
+    isMarked: false,
+  });
+  const [teamMatchForm, setTeamMatchForm] = useState({
+    date: "",
+    time: "",
+    opponent: "",
+    competition: "友谊赛",
+    stadium: "",
+    homeKit: "",
+    awayKit: "",
+    ourScore: "",
+    opponentScore: "",
+    scorers: "",
+    assists: "",
+    bestPlayer: "",
+    note: "",
+  });
+  const [coachMatchForm, setCoachMatchForm] = useState({
+    date: "",
+    opponent: "",
+    result: "",
+    note: "",
+    isMarked: false,
+  });
 
   // --- 导入导出状态 ---
   const [importText, setImportText] = useState("");
@@ -365,28 +774,71 @@ function App() {
   const [pageError, setPageError] = useState("");
 
   /* ===== localStorage 持久化 ===== */
-  useEffect(() => { safeSetLocalStorage("fm_players", players); }, [players]);
-  useEffect(() => { localStorage.setItem("fm_playerRosterVersion", PLAYER_ROSTER_VERSION); }, []);
-  useEffect(() => { safeSetLocalStorage("fm_coaches", coaches); }, [coaches]);
-  useEffect(() => { safeSetLocalStorage("fm_clubInfo", clubInfo); }, [clubInfo]);
-  useEffect(() => { safeSetLocalStorage("fm_teamMatches", teamMatches); }, [teamMatches]);
-  useEffect(() => { safeSetLocalStorage("fm_manualAwards", manualAwards); }, [manualAwards]);
-  useEffect(() => { safeSetLocalStorage("fm_nextMatch", nextMatch); }, [nextMatch]);
-  useEffect(() => { safeSetLocalStorage("fm_contentEdits", contentEdits); }, [contentEdits]);
-  useEffect(() => { safeSetLocalStorage("fm_tacticsPositions", tacticsPositions); }, [tacticsPositions]);
-  useEffect(() => { safeSetLocalStorage("fm_trainingSessions", trainingSessions); }, [trainingSessions]);
-  useEffect(() => { safeSetLocalStorage("fm_isAdmin", isAdmin); }, [isAdmin]);
-  useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, [view, selectedName]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_players", players);
+  }, [players]);
+  useEffect(() => {
+    localStorage.setItem("fm_playerRosterVersion", PLAYER_ROSTER_VERSION);
+  }, []);
+  useEffect(() => {
+    safeSetLocalStorage("fm_coaches", coaches);
+  }, [coaches]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_clubInfo", clubInfo);
+  }, [clubInfo]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_teamMatches", teamMatches);
+  }, [teamMatches]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_manualAwards", manualAwards);
+  }, [manualAwards]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_nextMatch", nextMatch);
+  }, [nextMatch]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_contentEdits", contentEdits);
+  }, [contentEdits]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_tacticsPositions", tacticsPositions);
+  }, [tacticsPositions]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_trainingSessions", trainingSessions);
+  }, [trainingSessions]);
+  useEffect(() => {
+    safeSetLocalStorage("fm_isAdmin", isAdmin);
+  }, [isAdmin]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [view, selectedName]);
 
   /* ===== 云端：构建/应用数据载荷 ===== */
   const buildTeamPayload = () => {
-    return { players, playerRosterVersion: PLAYER_ROSTER_VERSION, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, trainingSessions, savedAt: new Date().toISOString() };
+    return {
+      ...payloadExtras.current,
+      players,
+      playerRosterVersion: PLAYER_ROSTER_VERSION,
+      coaches,
+      clubInfo,
+      teamMatches,
+      manualAwards,
+      nextMatch,
+      contentEdits,
+      tacticsPositions,
+      trainingSessions,
+      savedAt: new Date().toISOString(),
+    };
   };
 
   const applyTeamPayload = (payload) => {
     try {
+      validatePayload(payload);
+      payloadExtras.current = payload;
       if (payload.players) {
-        setPlayers(payload.playerRosterVersion === PLAYER_ROSTER_VERSION ? payload.players : migratePlayersTo2026Roster(payload.players));
+        setPlayers(
+          payload.playerRosterVersion === PLAYER_ROSTER_VERSION
+            ? payload.players
+            : migratePlayersTo2026Roster(payload.players),
+        );
       }
       if (payload.coaches) setCoaches(payload.coaches);
       if (payload.clubInfo) setClubInfo(migrateClubInfo(payload.clubInfo));
@@ -394,8 +846,10 @@ function App() {
       if (payload.manualAwards) setManualAwards(payload.manualAwards);
       if (payload.nextMatch) setNextMatch(payload.nextMatch);
       if (payload.contentEdits) setContentEdits(payload.contentEdits);
-      if (payload.tacticsPositions) setTacticsPositions(payload.tacticsPositions);
-      if (payload.trainingSessions) setTrainingSessions(payload.trainingSessions);
+      if (payload.tacticsPositions)
+        setTacticsPositions(payload.tacticsPositions);
+      if (payload.trainingSessions)
+        setTrainingSessions(payload.trainingSessions);
       return true;
     } catch (e) {
       console.error("应用数据失败:", e);
@@ -404,34 +858,61 @@ function App() {
   };
 
   const upsertCloudData = async () => {
+    if (
+      !isAdmin ||
+      !cloudReady ||
+      !cloudRevision.current ||
+      previewReadOnly ||
+      saveInFlight.current
+    ) {
+      setCloudError(
+        previewReadOnly
+          ? "当前为独立预览，云端写入已关闭。"
+          : "云端尚未成功加载，保存已阻止。请先重新读取。",
+      );
+      return;
+    }
+    saveInFlight.current = true;
     try {
       setCloudLoading(true);
-      const payload = buildTeamPayload();
-      const { error } = await supabaseClient.from("team_state").upsert(
-        { id: "main", data: payload, updated_at: new Date().toISOString() },
-        { onConflict: "id" }
-      );
-      if (error) throw error;
+      const payload = validatePayload(buildTeamPayload());
+      lastAttempted.current = payloadSignature(payload);
+      try {
+        cloudRevision.current = await saveTeamState(supabaseClient, payload, {
+          isAdmin,
+          ready: cloudReady,
+          revision: cloudRevision.current,
+          readOnly: previewReadOnly,
+        });
+      } catch (error) {
+        if (error.message.includes("新版本")) setCloudReady(false);
+        throw error;
+      }
+      lastSaved.current = payloadSignature(payload);
       setCloudStatus("已同步");
       setCloudError("");
     } catch (e) {
       setCloudStatus("同步失败");
       setCloudError(e.message || "未知错误");
     } finally {
+      saveInFlight.current = false;
       setCloudLoading(false);
     }
   };
 
   const loadCloudData = async () => {
+    setCloudReady(false);
+    cloudRevision.current = null;
     try {
       setCloudLoading(true);
-      const { data, error } = await supabaseClient.from("team_state").select("data").eq("id", "main").single();
-      if (error) throw error;
-      if (data?.data) {
-        applyTeamPayload(data.data);
-        setCloudStatus("已加载");
-        setCloudError("");
-      }
+      const data = await readTeamState(supabaseClient);
+      safeSetLocalStorage("fm_beforeCloudLoad", buildTeamPayload());
+      if (!applyTeamPayload(data.data)) throw new Error("云端数据应用失败");
+      cloudRevision.current = data.updated_at;
+      lastSaved.current = null;
+      lastAttempted.current = null;
+      setCloudStatus("已加载");
+      setCloudError("");
       setCloudReady(true);
     } catch (e) {
       setCloudStatus("加载失败");
@@ -455,35 +936,68 @@ function App() {
     };
 
     document.addEventListener("visibilitychange", refreshForVisitor);
-    return () => document.removeEventListener("visibilitychange", refreshForVisitor);
+    return () =>
+      document.removeEventListener("visibilitychange", refreshForVisitor);
   }, [isAdmin]);
 
   /* ===== 云端自动保存 (900ms 防抖) ===== */
   useEffect(() => {
-    if (!isAdmin || !cloudReady) return;
+    if (!cloudReady || cloudLoading) return;
+    const signature = payloadSignature(buildTeamPayload());
+    if (lastSaved.current === null) {
+      lastSaved.current = signature;
+      return;
+    }
+    if (
+      !isAdmin ||
+      previewReadOnly ||
+      signature === lastSaved.current ||
+      signature === lastAttempted.current
+    )
+      return;
     const timer = setTimeout(() => {
       upsertCloudData();
     }, 900);
     return () => clearTimeout(timer);
-  }, [players, coaches, clubInfo, teamMatches, manualAwards, nextMatch, contentEdits, tacticsPositions, trainingSessions, isAdmin, cloudReady]);
+  }, [
+    players,
+    coaches,
+    clubInfo,
+    teamMatches,
+    manualAwards,
+    nextMatch,
+    contentEdits,
+    tacticsPositions,
+    trainingSessions,
+    isAdmin,
+    cloudReady,
+    cloudLoading,
+  ]);
 
   /* ===== Supabase Auth 会话 ===== */
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data }) => {
       if (data.session) setIsAdmin(true);
     });
-    const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
-      if (session) setIsAdmin(true);
-    });
+    const { data } = supabaseClient.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session) setIsAdmin(true);
+        else if (_event === "SIGNED_OUT") setIsAdmin(false);
+      },
+    );
     return () => data.subscription.unsubscribe();
   }, []);
 
   /* ===== computed 数据 ===== */
   const seasonOptions = useMemo(() => {
     const seasons = new Set();
-    teamMatches.forEach((m) => { if (m.date) seasons.add(getSeasonKey(m.date)); });
+    teamMatches.forEach((m) => {
+      if (m.date) seasons.add(getSeasonKey(m.date));
+    });
     players.forEach((p) => {
-      (p.matches || []).forEach((m) => { if (m.date) seasons.add(getSeasonKey(m.date)); });
+      (p.matches || []).forEach((m) => {
+        if (m.date) seasons.add(getSeasonKey(m.date));
+      });
     });
     return Array.from(seasons).sort().reverse();
   }, [teamMatches, players]);
@@ -496,17 +1010,31 @@ function App() {
   }, [teamMatches, selectedSeason]);
 
   const completedTeamMatches = useMemo(
-    () => filteredTeamMatches.filter((match) => getMatchStatus(match) === "finished"),
-    [filteredTeamMatches]
+    () =>
+      filteredTeamMatches.filter(
+        (match) => getMatchStatus(match) === "finished",
+      ),
+    [filteredTeamMatches],
   );
 
   const filteredPlayers = useMemo(() => {
-    if (selectedSeason === "全部赛季") return players;
-    return players.map((p) => {
-      const filteredMatches = (p.matches || []).filter((m) => getSeasonKey(m.date) === selectedSeason);
+    const completedPlayers = players.map((p) => ({
+      ...p,
+      matches: uniquePlayerRecords(p.matches || []).filter((record) => {
+        const linked = teamMatches.find(
+          (m) => String(m.id) === String(record.teamMatchId),
+        );
+        return !linked || getMatchStatus(linked) === "finished";
+      }),
+    }));
+    if (selectedSeason === "全部赛季") return completedPlayers;
+    return completedPlayers.map((p) => {
+      const filteredMatches = (p.matches || []).filter(
+        (m) => getSeasonKey(m.date) === selectedSeason,
+      );
       return { ...p, matches: filteredMatches };
     });
-  }, [players, selectedSeason]);
+  }, [players, teamMatches, selectedSeason]);
 
   const teamStats = useMemo(() => {
     return completedTeamMatches.reduce(
@@ -516,18 +1044,39 @@ function App() {
         if (getTeamMatchResult(m) === "draw") stats.draws++;
         if (getTeamMatchResult(m) === "loss") stats.losses++;
         stats.goals += Number(m.ourScore || 0);
+        stats.conceded += Number(m.opponentScore || 0);
         return stats;
       },
-      { matches: 0, wins: 0, draws: 0, losses: 0, goals: 0, players: players.length, playerRecords: players.reduce((sum, p) => sum + (p.matches?.length || 0), 0) }
+      {
+        matches: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        goals: 0,
+        conceded: 0,
+        players: players.length,
+        playerRecords: players.reduce(
+          (sum, p) => sum + (p.matches?.length || 0),
+          0,
+        ),
+      },
     );
   }, [completedTeamMatches, players]);
 
   const ranking = useMemo(() => {
-    return players
-      .map((p) => ({ ...p, avgRating: averageRating(p.matches || []), status: getStatus(averageRating(p.matches || [])) }))
+    return filteredPlayers
+      .map((p) => ({
+        ...p,
+        avgRating: averageRating(p.matches || []),
+        status: getStatus(averageRating(p.matches || [])),
+      }))
       .filter((p) => p.avgRating !== "-")
-      .sort((a, b) => Number(b.avgRating) - Number(a.avgRating) || (b.matches?.length || 0) - (a.matches?.length || 0));
-  }, [players]);
+      .sort(
+        (a, b) =>
+          Number(b.avgRating) - Number(a.avgRating) ||
+          (b.matches?.length || 0) - (a.matches?.length || 0),
+      );
+  }, [filteredPlayers]);
 
   const mvp = useMemo(() => {
     const qualified = ranking.filter((p) => (p.matches?.length || 0) >= 2);
@@ -536,45 +1085,88 @@ function App() {
 
   const featuredPlayers = useMemo(() => {
     return [...players]
-      .sort((a, b) => Number(Boolean(b.photo)) - Number(Boolean(a.photo)) || (b.matches?.length || 0) - (a.matches?.length || 0) || Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999))
+      .sort(
+        (a, b) =>
+          Number(Boolean(playerCard(b))) - Number(Boolean(playerCard(a))) ||
+          (b.matches?.length || 0) - (a.matches?.length || 0) ||
+          Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999),
+      )
       .slice(0, 4);
   }, [players]);
 
   const awardStats = useMemo(() => {
-    const topScorer = [...players].sort((a, b) => totalStat(b.matches || [], "goals") - totalStat(a.matches || [], "goals"));
-    const assistKing = [...players].sort((a, b) => totalStat(b.matches || [], "assists") - totalStat(a.matches || [], "assists"));
-    const bestDefender = players.filter((player) => player.category === "后卫").sort((a, b) => (b.matches?.length || 0) - (a.matches?.length || 0));
+    const topScorer = [...filteredPlayers].sort(
+      (a, b) =>
+        totalStat(b.matches || [], "goals") -
+        totalStat(a.matches || [], "goals"),
+    );
+    const assistKing = [...filteredPlayers].sort(
+      (a, b) =>
+        totalStat(b.matches || [], "assists") -
+        totalStat(a.matches || [], "assists"),
+    );
+    const bestDefender = filteredPlayers
+      .filter((player) => player.category === "后卫" && player.matches?.length)
+      .sort((a, b) => (b.matches?.length || 0) - (a.matches?.length || 0));
     const coachRanking = coaches
       .map((c) => {
         const totalMatches = (c.matches || []).length;
         const record = countResults(c.matches || []);
-        const winRate = totalMatches > 0 ? ((record.wins / totalMatches) * 100).toFixed(0) + "%" : "-";
+        const winRate =
+          totalMatches > 0
+            ? ((record.wins / totalMatches) * 100).toFixed(0) + "%"
+            : "-";
         return { ...c, totalMatches, winRateText: winRate };
       })
       .sort((a, b) => b.totalMatches - a.totalMatches);
 
     return {
-      topScorer: topScorer.length && totalStat(topScorer[0].matches || [], "goals") > 0 ? topScorer[0] : null,
-      assistKing: assistKing.length && totalStat(assistKing[0].matches || [], "assists") > 0 ? assistKing[0] : null,
+      topScorer:
+        topScorer.length && totalStat(topScorer[0].matches || [], "goals") > 0
+          ? topScorer[0]
+          : null,
+      assistKing:
+        assistKing.length &&
+        totalStat(assistKing[0].matches || [], "assists") > 0
+          ? assistKing[0]
+          : null,
       bestDefender: bestDefender.length ? bestDefender[0] : null,
       coachRanking,
     };
-  }, [players, coaches]);
+  }, [filteredPlayers, coaches]);
 
   const bestLineup = useMemo(() => {
-    const byAvailability = (a, b) => (b.matches?.length || 0) - (a.matches?.length || 0) || Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999);
-    const fw = [...players.filter((p) => p.category === "前场")].sort(byAvailability).slice(0, 3);
-    const mf = [...players.filter((p) => p.category === "中场")].sort(byAvailability).slice(0, 3);
-    const df = [...players.filter((p) => p.category === "后卫")].sort(byAvailability).slice(0, 4);
+    const byAvailability = (a, b) =>
+      (b.matches?.length || 0) - (a.matches?.length || 0) ||
+      Number(a.rosterOrder || 999) - Number(b.rosterOrder || 999);
+    const fw = [...players.filter((p) => p.category === "前场")]
+      .sort(byAvailability)
+      .slice(0, 3);
+    const mf = [...players.filter((p) => p.category === "中场")]
+      .sort(byAvailability)
+      .slice(0, 3);
+    const df = [...players.filter((p) => p.category === "后卫")]
+      .sort(byAvailability)
+      .slice(0, 4);
     return { 前场: fw, 中场: mf, 后卫: df };
   }, [players]);
 
   const latestTeamMatch = useMemo(() => {
-    return completedTeamMatches.length ? completedTeamMatches[completedTeamMatches.length - 1] : null;
+    return (
+      [...completedTeamMatches].sort((a, b) =>
+        String(b.date).localeCompare(String(a.date)),
+      )[0] || null
+    );
   }, [completedTeamMatches]);
 
-  const selectedPlayer = useMemo(() => findPlayerByName(players, selectedName), [players, selectedName]);
-  const selectedCoach = useMemo(() => coaches.find((c) => c.name === selectedCoachName) || coaches[0], [coaches, selectedCoachName]);
+  const selectedPlayer = useMemo(
+    () => findPlayerByName(players, selectedName),
+    [players, selectedName],
+  );
+  const selectedCoach = useMemo(
+    () => coaches.find((c) => c.name === selectedCoachName) || coaches[0],
+    [coaches, selectedCoachName],
+  );
 
   /* ===== 权限检查 ===== */
   const requireAdmin = () => {
@@ -593,8 +1185,8 @@ function App() {
           ? typeof updater === "function"
             ? updater(player)
             : { ...player, ...updater }
-          : player
-      )
+          : player,
+      ),
     );
   };
 
@@ -603,7 +1195,12 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await replacePlayerImage(file, "players", playerForm.name || "new-player", playerForm.photo);
+      const url = await replacePlayerImage(
+        file,
+        "players",
+        playerForm.name || "new-player",
+        playerForm.photo,
+      );
       setPlayerForm((prev) => ({ ...prev, photo: url }));
       setPageError("");
     } catch (e) {
@@ -619,7 +1216,12 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await replacePlayerImage(file, "cards", playerForm.name || "new-player", playerForm.cardImage);
+      const url = await replacePlayerImage(
+        file,
+        "cards",
+        playerForm.name || "new-player",
+        playerForm.cardImage,
+      );
       setPlayerForm((prev) => ({ ...prev, cardImage: url }));
       setPageError("");
     } catch (e) {
@@ -635,7 +1237,7 @@ function App() {
 
     try {
       setPageLoading(true);
-      if (playerForm.photo) await deletePlayerImageByUrl(playerForm.photo);
+
       setPlayerForm((prev) => ({ ...prev, photo: "" }));
       setPageError("");
     } catch (e) {
@@ -650,7 +1252,7 @@ function App() {
 
     try {
       setPageLoading(true);
-      if (playerForm.cardImage) await deletePlayerImageByUrl(playerForm.cardImage);
+
       setPlayerForm((prev) => ({ ...prev, cardImage: "" }));
       setPageError("");
     } catch (e) {
@@ -665,7 +1267,12 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await replacePlayerImage(file, "players", selectedPlayer.name, selectedPlayer.photo);
+      const url = await replacePlayerImage(
+        file,
+        "players",
+        selectedPlayer.name,
+        selectedPlayer.photo,
+      );
       updatePlayerByName(selectedPlayer.name, { photo: url });
       setPageError("");
     } catch (e) {
@@ -681,8 +1288,16 @@ function App() {
 
     try {
       setPageLoading(true);
-      const url = await replacePlayerImage(file, "cards", selectedPlayer.name, selectedPlayer.cardImage);
-      updatePlayerByName(selectedPlayer.name, { cardImage: url });
+      const url = await replacePlayerImage(
+        file,
+        "cards",
+        selectedPlayer.name,
+        selectedPlayer.cardImage,
+      );
+      updatePlayerByName(selectedPlayer.name, {
+        cardImage: url,
+        cardImageRemoved: false,
+      });
       setPageError("");
     } catch (e) {
       setPageError("更新球星卡失败：" + (e.message || "未知错误"));
@@ -697,7 +1312,7 @@ function App() {
 
     try {
       setPageLoading(true);
-      if (selectedPlayer.photo) await deletePlayerImageByUrl(selectedPlayer.photo);
+
       updatePlayerByName(selectedPlayer.name, { photo: "" });
       setPageError("");
     } catch (e) {
@@ -712,8 +1327,11 @@ function App() {
 
     try {
       setPageLoading(true);
-      if (selectedPlayer.cardImage) await deletePlayerImageByUrl(selectedPlayer.cardImage);
-      updatePlayerByName(selectedPlayer.name, { cardImage: "" });
+
+      updatePlayerByName(selectedPlayer.name, {
+        cardImage: "",
+        cardImageRemoved: true,
+      });
       setPageError("");
     } catch (e) {
       setPageError("删除球星卡失败：" + (e.message || "未知错误"));
@@ -725,6 +1343,32 @@ function App() {
   const handleUpdateSelectedPlayerField = (key, value) => {
     if (!requireAdmin() || !selectedPlayer) return;
     const currentName = selectedPlayer.name;
+    if (key === "name") {
+      if (
+        !String(value).trim() ||
+        players.some((p) => p.name === value && p.name !== currentName)
+      ) {
+        setPageError("姓名不能为空或与其他球员重复");
+        return;
+      }
+      const rename = (node) =>
+        Array.isArray(node)
+          ? node.map(rename)
+          : node && typeof node === "object"
+            ? Object.fromEntries(
+                Object.entries(node).map(([k, v]) => [
+                  k === currentName ? value : k,
+                  rename(v),
+                ]),
+              )
+            : node === currentName
+              ? value
+              : node;
+      setTeamMatches(rename);
+      setManualAwards(rename);
+      setTacticsPositions(rename);
+      setTrainingSessions(rename);
+    }
     updatePlayerByName(currentName, { [key]: value });
     if (key === "name") setSelectedName(value);
   };
@@ -758,7 +1402,12 @@ function App() {
         shirtSize: playerForm.shirtSize.trim(),
         joinedAt: playerForm.joinedAt,
         status: playerForm.status,
-        tags: playerForm.tags ? playerForm.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        tags: playerForm.tags
+          ? playerForm.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [],
         summary: playerForm.summary.trim(),
         photo: playerForm.photo || "",
         cardImage: playerForm.cardImage || "",
@@ -791,7 +1440,9 @@ function App() {
 
   const importPlayers = (incomingPlayers) => {
     if (!requireAdmin()) return "请先登录管理员账号";
-    const existingByName = new Map(players.map((player) => [player.name, player]));
+    const existingByName = new Map(
+      players.map((player) => [player.name, player]),
+    );
     let added = 0;
     let updated = 0;
     const mergedIncoming = incomingPlayers.map((incoming, index) => {
@@ -801,14 +1452,20 @@ function App() {
       return {
         ...(existing || {}),
         ...incoming,
-        rosterOrder: incoming.rosterOrder || existing?.rosterOrder || players.length + index + 1,
+        rosterOrder:
+          incoming.rosterOrder ||
+          existing?.rosterOrder ||
+          players.length + index + 1,
         photo: existing?.photo || incoming.photo || "",
         cardImage: existing?.cardImage || "",
         matches: existing?.matches || [],
       };
     });
     const incomingNames = new Set(mergedIncoming.map((player) => player.name));
-    setPlayers((current) => [...current.filter((player) => !incomingNames.has(player.name)), ...mergedIncoming]);
+    setPlayers((current) => [
+      ...current.filter((player) => !incomingNames.has(player.name)),
+      ...mergedIncoming,
+    ]);
     setPageError("");
     return `导入完成：新增 ${added} 人，更新 ${updated} 人`;
   };
@@ -843,10 +1500,22 @@ function App() {
         old.map((player) => {
           if (player.name !== selectedName) return player;
           return { ...player, matches: [...(player.matches || []), newMatch] };
-        })
+        }),
       );
 
-      setMatchForm({ date: "", opponent: "", result: "", goals: "", assists: "", rating: "", saves: "", conceded: "", cleanSheet: false, note: "", isMarked: false });
+      setMatchForm({
+        date: "",
+        opponent: "",
+        result: "",
+        goals: "",
+        assists: "",
+        rating: "",
+        saves: "",
+        conceded: "",
+        cleanSheet: false,
+        note: "",
+        isMarked: false,
+      });
       setPageError("");
     } catch (e) {
       setPageError("添加比赛记录失败：" + (e.message || "未知错误"));
@@ -872,8 +1541,18 @@ function App() {
         awayKit: teamMatchForm.awayKit || "",
         ourScore: Number(teamMatchForm.ourScore || 0),
         opponentScore: Number(teamMatchForm.opponentScore || 0),
-        scorers: teamMatchForm.scorers ? teamMatchForm.scorers.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        assists: teamMatchForm.assists ? teamMatchForm.assists.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        scorers: teamMatchForm.scorers
+          ? teamMatchForm.scorers
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+        assists: teamMatchForm.assists
+          ? teamMatchForm.assists
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
         bestPlayer: teamMatchForm.bestPlayer || "",
         note: teamMatchForm.note || "",
         matchAwards: {},
@@ -885,7 +1564,21 @@ function App() {
 
       setTeamMatches((old) => [...old, newMatch]);
       setSelectedTeamMatchId(newMatch.id);
-      setTeamMatchForm({ date: "", time: "", opponent: "", competition: "友谊赛", stadium: "", homeKit: "", awayKit: "", ourScore: "", opponentScore: "", scorers: "", assists: "", bestPlayer: "", note: "" });
+      setTeamMatchForm({
+        date: "",
+        time: "",
+        opponent: "",
+        competition: "友谊赛",
+        stadium: "",
+        homeKit: "",
+        awayKit: "",
+        ourScore: "",
+        opponentScore: "",
+        scorers: "",
+        assists: "",
+        bestPlayer: "",
+        note: "",
+      });
       setPageError("");
       return true;
     } catch (e) {
@@ -895,12 +1588,19 @@ function App() {
   };
 
   const updateTeamMatch = (matchId, updater, syncWhenFinished = false) => {
-    const currentMatch = teamMatches.find((match) => String(match.id) === String(matchId));
+    const currentMatch = teamMatches.find(
+      (match) => String(match.id) === String(matchId),
+    );
     if (!currentMatch) return null;
-    const updatedMatch = typeof updater === "function" ? updater(currentMatch) : { ...currentMatch, ...updater };
-    setTeamMatches((current) => current.map((match) => (
-      String(match.id) === String(matchId) ? updatedMatch : match
-    )));
+    const updatedMatch =
+      typeof updater === "function"
+        ? updater(currentMatch)
+        : { ...currentMatch, ...updater };
+    setTeamMatches((current) =>
+      current.map((match) =>
+        String(match.id) === String(matchId) ? updatedMatch : match,
+      ),
+    );
     if (syncWhenFinished && getMatchStatus(updatedMatch) === "finished") {
       setPlayers((current) => syncMatchToPlayerRecords(current, updatedMatch));
     }
@@ -911,7 +1611,11 @@ function App() {
     if (!requireAdmin()) return;
     updateTeamMatch(matchId, (match) => {
       const registrations = { ...(match.registrations || {}) };
-      if (status) registrations[playerName] = { status, updatedAt: new Date().toISOString() };
+      if (status)
+        registrations[playerName] = {
+          status,
+          updatedAt: new Date().toISOString(),
+        };
       else delete registrations[playerName];
       return { ...match, registrations };
     });
@@ -919,11 +1623,17 @@ function App() {
 
   const setMatchSquadRole = (matchId, playerName, role) => {
     if (!requireAdmin()) return;
-    const currentMatch = teamMatches.find((match) => String(match.id) === String(matchId));
+    const currentMatch = teamMatches.find(
+      (match) => String(match.id) === String(matchId),
+    );
     if (!currentMatch) return;
     const currentSquad = normalizeMatchSquad(currentMatch.squad);
-    const nextStarters = currentSquad.starters.filter((name) => name !== playerName);
-    const nextSubstitutes = currentSquad.substitutes.filter((name) => name !== playerName);
+    const nextStarters = currentSquad.starters.filter(
+      (name) => name !== playerName,
+    );
+    const nextSubstitutes = currentSquad.substitutes.filter(
+      (name) => name !== playerName,
+    );
 
     if (role === "starter") {
       if (nextStarters.length >= 11) {
@@ -935,58 +1645,89 @@ function App() {
     if (role === "substitute") nextSubstitutes.push(playerName);
 
     setPageError("");
-    updateTeamMatch(matchId, {
-      ...currentMatch,
-      squad: {
-        ...currentSquad,
-        starters: nextStarters,
-        substitutes: nextSubstitutes,
-        captain: nextStarters.includes(currentSquad.captain) ? currentSquad.captain : "",
-        goalkeeper: nextStarters.includes(currentSquad.goalkeeper) ? currentSquad.goalkeeper : "",
+    updateTeamMatch(
+      matchId,
+      {
+        ...currentMatch,
+        squad: {
+          ...currentSquad,
+          starters: nextStarters,
+          substitutes: nextSubstitutes,
+          captain: nextStarters.includes(currentSquad.captain)
+            ? currentSquad.captain
+            : "",
+          goalkeeper: nextStarters.includes(currentSquad.goalkeeper)
+            ? currentSquad.goalkeeper
+            : "",
+        },
       },
-    }, true);
+      true,
+    );
   };
 
   const updateMatchSquadMeta = (matchId, key, value) => {
     if (!requireAdmin()) return;
-    updateTeamMatch(matchId, (match) => ({
-      ...match,
-      squad: { ...normalizeMatchSquad(match.squad), [key]: value },
-    }), true);
+    updateTeamMatch(
+      matchId,
+      (match) => ({
+        ...match,
+        squad: { ...normalizeMatchSquad(match.squad), [key]: value },
+      }),
+      true,
+    );
   };
 
   const importTacticsToMatch = (matchId) => {
     if (!requireAdmin()) return;
     const knownNames = new Set(players.map((player) => player.name));
-    const starters = [...new Set(tacticsPositions.map((player) => player.name).filter((name) => knownNames.has(name)))].slice(0, 11);
+    const starters = [
+      ...new Set(
+        tacticsPositions
+          .map((player) => player.name)
+          .filter((name) => knownNames.has(name)),
+      ),
+    ].slice(0, 11);
     if (!starters.length) {
       setPageError("当前战术板还没有球员，请先在阵容页面设置战术板。");
       return;
     }
-    const goalkeeper = starters.find((name) => {
-      const player = players.find((item) => item.name === name);
-      return player?.category === "守门员" || String(player?.position || "").includes("门将");
-    }) || "";
-    updateTeamMatch(matchId, (match) => {
-      const squad = normalizeMatchSquad(match.squad);
-      return {
-        ...match,
-        squad: {
-          ...squad,
-          starters,
-          substitutes: squad.substitutes.filter((name) => !starters.includes(name)),
-          captain: starters.includes(squad.captain) ? squad.captain : "",
-          goalkeeper,
-        },
-      };
-    }, true);
+    const goalkeeper =
+      starters.find((name) => {
+        const player = players.find((item) => item.name === name);
+        return (
+          player?.category === "守门员" ||
+          String(player?.position || "").includes("门将")
+        );
+      }) || "";
+    updateTeamMatch(
+      matchId,
+      (match) => {
+        const squad = normalizeMatchSquad(match.squad);
+        return {
+          ...match,
+          squad: {
+            ...squad,
+            starters,
+            substitutes: squad.substitutes.filter(
+              (name) => !starters.includes(name),
+            ),
+            captain: starters.includes(squad.captain) ? squad.captain : "",
+            goalkeeper,
+          },
+        };
+      },
+      true,
+    );
     setPageError("");
   };
 
   const addTeamMatchEvent = (matchId, eventForm) => {
     if (!requireAdmin()) return;
     const event = {
-      id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      id:
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       minute: Math.max(0, Number(eventForm.minute || 0)),
       type: eventForm.type,
       player: eventForm.player || "",
@@ -994,20 +1735,39 @@ function App() {
       note: eventForm.note?.trim() || "",
       createdAt: new Date().toISOString(),
     };
-    updateTeamMatch(matchId, (match) => {
-      const updated = deriveMatchFromEvents(match, [...(match.events || []), event]);
-      return getMatchStatus(updated) === "scheduled" ? { ...updated, status: "live" } : updated;
-    }, true);
+    updateTeamMatch(
+      matchId,
+      (match) => {
+        const updated = deriveMatchFromEvents(match, [
+          ...(match.events || []),
+          event,
+        ]);
+        return getMatchStatus(updated) === "scheduled"
+          ? { ...updated, status: "live" }
+          : updated;
+      },
+      true,
+    );
     setPageError("");
   };
 
   const deleteTeamMatchEvent = (matchId, eventId) => {
     if (!requireAdmin()) return;
-    if (!window.confirm("确认删除这条比赛事件吗？比分和球员数据会自动重新计算。")) return;
-    updateTeamMatch(matchId, (match) => deriveMatchFromEvents(
-      match,
-      (match.events || []).filter((event) => String(event.id) !== String(eventId))
-    ), true);
+    if (
+      !window.confirm("确认删除这条比赛事件吗？比分和球员数据会自动重新计算。")
+    )
+      return;
+    updateTeamMatch(
+      matchId,
+      (match) =>
+        deriveMatchFromEvents(
+          match,
+          (match.events || []).filter(
+            (event) => String(event.id) !== String(eventId),
+          ),
+        ),
+      true,
+    );
   };
 
   const setTeamMatchStatus = (matchId, status) => {
@@ -1015,7 +1775,8 @@ function App() {
     const updatedMatch = updateTeamMatch(matchId, (match) => ({
       ...match,
       status,
-      finishedAt: status === "finished" ? new Date().toISOString() : match.finishedAt,
+      finishedAt:
+        status === "finished" ? new Date().toISOString() : match.finishedAt,
     }));
     if (updatedMatch && status === "finished") {
       setPlayers((current) => syncMatchToPlayerRecords(current, updatedMatch));
@@ -1025,9 +1786,12 @@ function App() {
 
   const deleteTeamMatch = (matchId) => {
     if (!requireAdmin()) return;
-    setTeamMatches((current) => current.filter((match) => String(match.id) !== String(matchId)));
+    setTeamMatches((current) =>
+      current.filter((match) => String(match.id) !== String(matchId)),
+    );
     setPlayers((current) => removeAutoMatchRecords(current, matchId));
-    if (String(selectedTeamMatchId) === String(matchId)) setSelectedTeamMatchId("");
+    if (String(selectedTeamMatchId) === String(matchId))
+      setSelectedTeamMatchId("");
   };
 
   const updatePlayerMatchRecord = (playerName, index, updatedMatch) => {
@@ -1036,9 +1800,9 @@ function App() {
       old.map((player) => {
         if (player.name !== playerName) return player;
         const newMatches = [...(player.matches || [])];
-        newMatches[index] = updatedMatch;
+        newMatches[index] = { ...newMatches[index], ...updatedMatch };
         return { ...player, matches: newMatches };
-      })
+      }),
     );
   };
 
@@ -1049,7 +1813,7 @@ function App() {
         if (player.name !== playerName) return player;
         const newMatches = (player.matches || []).filter((_, i) => i !== index);
         return { ...player, matches: newMatches };
-      })
+      }),
     );
   };
 
@@ -1059,16 +1823,23 @@ function App() {
       old.map((player) => {
         if (player.name !== playerName) return player;
         const newMatches = [...(player.matches || [])];
-        newMatches[index] = { ...newMatches[index], isMarked: !newMatches[index].isMarked };
+        newMatches[index] = {
+          ...newMatches[index],
+          isMarked: !newMatches[index].isMarked,
+        };
         return { ...player, matches: newMatches };
-      })
+      }),
     );
   };
 
   const addCoachMatchRecord = () => {
     if (!requireAdmin()) return;
     try {
-      if (!coachMatchForm.date || !coachMatchForm.opponent || !coachMatchForm.result) {
+      if (
+        !coachMatchForm.date ||
+        !coachMatchForm.opponent ||
+        !coachMatchForm.result
+      ) {
         setPageError("请填写日期、对手和比赛结果");
         return;
       }
@@ -1080,9 +1851,19 @@ function App() {
         isMarked: Boolean(coachMatchForm.isMarked),
       };
       setCoaches((old) =>
-        old.map((c) => (c.name === selectedCoachName ? { ...c, matches: [...(c.matches || []), newMatch] } : c))
+        old.map((c) =>
+          c.name === selectedCoachName
+            ? { ...c, matches: [...(c.matches || []), newMatch] }
+            : c,
+        ),
       );
-      setCoachMatchForm({ date: "", opponent: "", result: "", note: "", isMarked: false });
+      setCoachMatchForm({
+        date: "",
+        opponent: "",
+        result: "",
+        note: "",
+        isMarked: false,
+      });
       setPageError("");
     } catch (e) {
       setPageError("添加执教记录失败：" + (e.message || "未知错误"));
@@ -1095,9 +1876,12 @@ function App() {
       old.map((c) => {
         if (c.name !== coachName) return c;
         const newMatches = [...(c.matches || [])];
-        newMatches[index] = { ...newMatches[index], isMarked: !newMatches[index].isMarked };
+        newMatches[index] = {
+          ...newMatches[index],
+          isMarked: !newMatches[index].isMarked,
+        };
         return { ...c, matches: newMatches };
-      })
+      }),
     );
   };
 
@@ -1109,7 +1893,9 @@ function App() {
   const exportBackup = () => {
     try {
       const backup = buildTeamPayload();
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       const now = new Date();
@@ -1125,6 +1911,7 @@ function App() {
   };
 
   const importBackup = () => {
+    if (!requireAdmin()) return;
     try {
       if (!importText.trim()) {
         setBackupMessage("请粘贴备份内容后再导入。");
@@ -1135,7 +1922,9 @@ function App() {
         setBackupMessage("备份数据格式不正确。");
         return;
       }
-      applyTeamPayload(data);
+      validatePayload(data);
+      safeSetLocalStorage("fm_beforeImport", buildTeamPayload());
+      if (!applyTeamPayload(data)) throw new Error("备份应用失败");
       setImportText("");
       setBackupMessage("数据导入成功！");
     } catch (e) {
@@ -1144,6 +1933,13 @@ function App() {
   };
 
   const restoreLocalBackup = () => {
+    if (!requireAdmin()) return;
+    const previous = safeGetLocalStorage("fm_beforeCloudLoad", null);
+    if (previous?.players?.length) {
+      applyTeamPayload(previous);
+      setBackupMessage("已恢复读取云端前的本地快照。");
+      return;
+    }
     try {
       const localPlayers = safeGetLocalStorage("fm_players", null);
       const localCoaches = safeGetLocalStorage("fm_coaches", null);
@@ -1152,8 +1948,14 @@ function App() {
       const localManualAwards = safeGetLocalStorage("fm_manualAwards", null);
       const localNextMatch = safeGetLocalStorage("fm_nextMatch", null);
       const localContentEdits = safeGetLocalStorage("fm_contentEdits", null);
-      const localTacticsPositions = safeGetLocalStorage("fm_tacticsPositions", null);
-      const localTrainingSessions = safeGetLocalStorage("fm_trainingSessions", null);
+      const localTacticsPositions = safeGetLocalStorage(
+        "fm_tacticsPositions",
+        null,
+      );
+      const localTrainingSessions = safeGetLocalStorage(
+        "fm_trainingSessions",
+        null,
+      );
 
       if (localPlayers) setPlayers(localPlayers);
       if (localCoaches) setCoaches(localCoaches);
@@ -1171,13 +1973,27 @@ function App() {
   };
 
   const resetData = () => {
+    if (!requireAdmin()) return;
     if (!window.confirm("确认恢复初始数据？所有修改将被覆盖！")) return;
     setPlayers(initialPlayers);
     setCoaches(initialCoachData);
     setClubInfo(initialClubInfo);
     setTeamMatches([]);
-    setManualAwards({ topScorer: "", assistKing: "", bestDefender: "", bestCoach: "" });
-    setNextMatch({ opponent: "", date: "", time: "", stadium: "", type: "友谊赛", lineup: "", note: "" });
+    setManualAwards({
+      topScorer: "",
+      assistKing: "",
+      bestDefender: "",
+      bestCoach: "",
+    });
+    setNextMatch({
+      opponent: "",
+      date: "",
+      time: "",
+      stadium: "",
+      type: "友谊赛",
+      lineup: "",
+      note: "",
+    });
     setContentEdits({});
     setTacticsPositions([]);
     setTrainingSessions([]);
@@ -1229,382 +2045,582 @@ function App() {
       contentEdits={contentEdits}
       setContentEdits={setContentEdits}
     >
-    <div className="fm-shell">
-      <Navbar view={currentView} setView={setView} clubInfo={clubInfo} />
+      <div
+        className={`fm-shell club-shell ${currentView === "dashboard" ? "is-home" : "is-inner"}`}
+      >
+        <Navbar
+          view={currentView}
+          setView={setView}
+          clubInfo={clubInfo}
+          isAdmin={isAdmin}
+          onAdmin={() => (isAdmin ? setView("operations") : setShowLogin(true))}
+        />
 
-      <main className="fm-main">
-        {/* 顶部栏 */}
-        <header className="fm-topbar">
-          <div>
-            <h1>
-              {currentView === "dashboard" && "球队官网首页"}
-              {currentView === "club" && "球队介绍"}
-              {currentView === "playerLibrary" && "球队名单"}
-              {currentView === "players" && "球员详情"}
-              {currentView === "teamMatches" && "比赛详情中心"}
-              {currentView === "matches" && "个人比赛记录"}
-              {currentView === "lineup" && "阵容推荐"}
-              {currentView === "training" && "训练与考勤"}
-              {currentView === "rankings" && "数据排行榜"}
-              {currentView === "operations" && "球队运营中心"}
-              {currentView === "awards" && "奖项系统"}
-              {currentView === "coach" && "教练组"}
-            </h1>
-            <p>{clubInfo.name} | {clubInfo.slogan}</p>
-          </div>
-          <div className="top-actions">
-            <span className={`mode-pill ${isAdmin ? "admin" : "visitor"}`}>
-              {isAdmin ? "管理员" : "访客"}
-            </span>
-            {isAdmin && (
-              <button
-                className={`top-mini-btn ${contentEditMode ? "active" : ""}`}
-                data-content-editor-ignore
-                onClick={() => setContentEditMode((value) => !value)}
-              >
-                {contentEditMode ? "退出文字编辑" : "编辑页面文字"}
-              </button>
-            )}
-            {seasonOptions.length > 0 && (
-              <select
-                className="season-select"
-                value={selectedSeason}
-                onChange={(e) => setSelectedSeason(e.target.value)}
-              >
-                <option value="全部赛季">全部赛季</option>
-                {seasonOptions.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            )}
-            <button
-              className={`top-mini-btn ${cloudLoading ? "cloud-pill warn" : cloudStatus === "已同步" || cloudStatus === "已加载" ? "cloud-pill" : ""}`}
-              title={cloudError || (isAdmin ? "点击立即保存到云端" : "点击重新读取云端数据")}
-              onClick={async () => {
-                try {
-                  if (isAdmin) {
-                    await upsertCloudData();
-                  } else {
-                    await loadCloudData();
-                  }
-                } catch {
-                  // 错误已在函数内处理
-                }
-              }}
-              disabled={cloudLoading}
-            >
-              {cloudLoading ? "同步中..." : cloudStatus}
-            </button>
-            {isAdmin ? (
-              <button className="top-mini-btn" onClick={handleAdminLogout}>退出管理</button>
-            ) : (
-              <button className="top-mini-btn active" onClick={() => setShowLogin(true)}>管理员登录</button>
-            )}
-          </div>
-        </header>
-
-        {cloudError && (
-          <div className="cloud-error-notice" role="status">
-            <div>
-              <strong>云端暂时无法连接</strong>
-              <span>{isAdmin ? "当前修改尚未保存，请等待 Supabase 恢复后重试。" : "当前显示本机缓存，点击右侧按钮重新读取。"}</span>
-            </div>
-            <button onClick={isAdmin ? upsertCloudData : loadCloudData} disabled={cloudLoading}>
-              {cloudLoading ? "连接中..." : isAdmin ? "重新保存" : "重新读取"}
-            </button>
-          </div>
-        )}
-
-        {/* 全局错误提示 */}
-        {pageError && (
-          <div className="global-error-bar" style={{
-            margin: "0 14px",
-            padding: "12px 16px",
-            background: "rgba(255,107,107,0.12)",
-            border: "1px solid rgba(255,107,107,0.3)",
-            borderRadius: "12px",
-            color: "var(--red)",
-            fontWeight: 800,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}>
-            <span>{pageError}</span>
-            <button className="small-ghost-btn" onClick={() => setPageError("")}>×</button>
-          </div>
-        )}
-
-        {/* 加载状态 */}
-        {pageLoading && <LoadingSpinner size="large" text="加载中..." />}
-
-        {/* 登录弹窗 */}
-        {showLogin && (
-          <div className="login-modal-backdrop" onClick={() => setShowLogin(false)}>
-            <div className="login-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="login-modal-head">
-                <div>
-                  <h2>管理员登录</h2>
-                  <p>输入密码后登录管理员模式，可编辑所有数据。</p>
-                </div>
-                <button className="login-close-btn" onClick={() => setShowLogin(false)}>×</button>
-              </div>
-              <label className="login-label">Supabase 管理员账户</label>
-              <input
-                type="email"
-                placeholder="Supabase 管理员邮箱（推荐）"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-              />
-              <input
-                type="password"
-                placeholder="请输入管理员密码"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleAdminLogin(); }}
-                autoFocus
-              />
-              {loginError && <div className="login-error">{loginError}</div>}
-              <div className="login-action-row">
-                <button className="small-ghost-btn" onClick={() => setShowLogin(false)}>取消</button>
-                <button className="primary-btn" onClick={handleAdminLogin}>登录</button>
-              </div>
-              <div className="login-tip">
-                <small>推荐使用 Supabase 管理员邮箱登录。邮箱留空时暂时兼容旧管理员密码。</small>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 页面路由 */}
-        <Suspense fallback={<LoadingSpinner text="正在加载页面..." />}>
-        {currentView === "dashboard" && (
-          <HomeShowcasePage
-            clubInfo={clubInfo}
-            teamStats={teamStats}
-            latestTeamMatch={latestTeamMatch}
-            recentTeamMatches={completedTeamMatches.slice(-5)}
-            featuredPlayers={featuredPlayers}
-            ranking={ranking}
-            mvp={mvp}
-            nextMatch={nextMatch}
-            setView={setView}
-            setSelectedName={setSelectedName}
-            setSelectedTeamMatchId={setSelectedTeamMatchId}
-          />
-        )}
-
-        {currentView === "club" && (
-          <ClubInfoPage clubInfo={clubInfo} setClubInfo={setClubInfo} isAdmin={isAdmin} />
-        )}
-
-        {currentView === "playerLibrary" && (
-          <PlayerLibraryPage
-            players={players}
-            playerForm={playerForm}
-            setPlayerForm={setPlayerForm}
-            addPlayer={addPlayer}
-            setSelectedName={setSelectedName}
-            setView={setView}
-            isAdmin={isAdmin}
-            clubInfo={clubInfo}
-            onUploadPhoto={handleUploadPlayerFormPhoto}
-            onDeletePhoto={handleDeletePlayerFormPhoto}
-            importPlayers={importPlayers}
-          />
-        )}
-
-        {currentView === "players" && selectedPlayer && (
-          <div className="player-layout">
-            {/* 左侧球员列表 */}
-            <aside className="player-list">
-              {categories.map((category) => (
-                <div className="player-group" key={category}>
-                  <h3>{category || "未分组"}</h3>
-                  {players
-                    .filter((p) => p.category === category)
-                    .sort((a, b) => Number(a.number || 0) - Number(b.number || 0))
-                    .map((player) => (
-                      <button
-                        key={player.name}
-                        className={`player-row ${player.name === selectedName ? "active" : ""}`}
-                        onClick={() => setSelectedName(player.name)}
-                      >
-                        <span>#{player.number}</span>
-                        <strong>{player.name}</strong>
-                        <small>{player.position || "位置待补充"}</small>
-                      </button>
-                    ))}
-                </div>
-              ))}
-            </aside>
-
-            {/* 球员详情 */}
-            <PlayerDetail
-              player={selectedPlayer}
-              clubInfo={clubInfo}
-              awardStats={awardStats}
-              onToggleMark={(index) => togglePlayerMatchMark(selectedPlayer.name, index)}
-              onEdit={(match, index) => {
-                setView("matches");
-                // TODO: 传递编辑状态
-              }}
-              onDelete={(index) => deletePlayerMatchRecord(selectedPlayer.name, index)}
-              editable={isAdmin}
-              isAdmin={isAdmin}
-              onUploadPhoto={handleUploadSelectedPlayerPhoto}
-              onDeletePhoto={handleDeleteSelectedPlayerPhoto}
-              onUpdateField={handleUpdateSelectedPlayerField}
-            />
-          </div>
-        )}
-
-        {currentView === "players" && !selectedPlayer && (
-          <section className="dashboard-grid">
-            <div className="panel wide">
-              <EmptyState title="请选择球员" text="从左侧列表中选择一名球员查看详情。" icon="👤" />
-            </div>
-          </section>
-        )}
-
-        {currentView === "teamMatches" && (
-          <TeamMatchesPage
-            clubInfo={clubInfo}
-            players={players}
-            teamMatches={filteredTeamMatches}
-            teamMatchForm={teamMatchForm}
-            setTeamMatchForm={setTeamMatchForm}
-            addTeamMatch={addTeamMatch}
-            deleteTeamMatch={(id) => {
-              deleteTeamMatch(id);
-            }}
-            isAdmin={isAdmin}
-            selectedTeamMatchId={selectedTeamMatchId}
-            setSelectedTeamMatchId={setSelectedTeamMatchId}
-            setSelectedName={setSelectedName}
-            setView={setView}
-            onSetRegistration={setMatchRegistration}
-            onSetSquadRole={setMatchSquadRole}
-            onUpdateSquadMeta={updateMatchSquadMeta}
-            onImportTactics={importTacticsToMatch}
-            onAddEvent={addTeamMatchEvent}
-            onDeleteEvent={deleteTeamMatchEvent}
-            onSetMatchStatus={setTeamMatchStatus}
-          />
-        )}
-
-        {currentView === "matches" && selectedPlayer && (
-          <PersonalMatchPage
-            selectedPlayer={selectedPlayer}
-            matchForm={matchForm}
-            setMatchForm={setMatchForm}
-            addMatchRecord={addMatchRecord}
-            updatePlayerMatchRecord={updatePlayerMatchRecord}
-            deletePlayerMatchRecord={deletePlayerMatchRecord}
-            togglePlayerMatchMark={togglePlayerMatchMark}
-            isAdmin={isAdmin}
-          />
-        )}
-
-        {currentView === "matches" && !selectedPlayer && (
-          <section className="dashboard-grid">
-            <div className="panel wide">
-              <EmptyState title="请先选择球员" text="在球队名单或球员详情中选择一名球员后再查看个人比赛记录。" icon="📊" />
-            </div>
-          </section>
-        )}
-
-        {currentView === "lineup" && (
-          <LineupPage
-            bestLineup={bestLineup}
-            players={players}
-            positions={tacticsPositions}
-            setPositions={setTacticsPositions}
-            isAdmin={isAdmin}
-          />
-        )}
-
-        {currentView === "training" && (
-          <TrainingPage players={players} sessions={trainingSessions} setSessions={setTrainingSessions} isAdmin={isAdmin} />
-        )}
-
-        {currentView === "rankings" && (
-          <RankingsPage players={filteredPlayers} teamMatches={filteredTeamMatches} ranking={ranking} teamStats={teamStats} />
-        )}
-
-        {currentView === "operations" && (
-          <OperationsPage
-            clubInfo={clubInfo}
-            nextMatch={nextMatch}
-            updateNextMatch={updateNextMatch}
-            teamMatches={teamMatches}
-            players={players}
-            isAdmin={isAdmin}
-            exportBackup={exportBackup}
-            importText={importText}
-            setImportText={setImportText}
-            importBackup={importBackup}
-            restoreLocalBackup={restoreLocalBackup}
-            backupMessage={backupMessage}
-            setSelectedTeamMatchId={setSelectedTeamMatchId}
-            setView={setView}
-          />
-        )}
-
-        {currentView === "awards" && (
-          <AwardsPage
-            players={filteredPlayers}
-            coaches={coaches}
-            teamMatches={filteredTeamMatches}
-            setTeamMatches={setTeamMatches}
-            manualAwards={manualAwards}
-            setManualAwards={setManualAwards}
-            awardStats={awardStats}
-            isAdmin={isAdmin}
-          />
-        )}
-
-        {currentView === "coach" && (
-          <CoachPage
-            coaches={coaches}
-            selectedCoach={selectedCoach}
-            selectedCoachName={selectedCoachName}
-            setSelectedCoachName={setSelectedCoachName}
-            coachMatchForm={coachMatchForm}
-            setCoachMatchForm={setCoachMatchForm}
-            addCoachMatchRecord={addCoachMatchRecord}
-            toggleCoachMatchMark={toggleCoachMatchMark}
-            ranking={ranking}
-            resetData={resetData}
-            isAdmin={isAdmin}
-          />
-        )}
-        </Suspense>
-
-        {/* 高级功能入口 */}
-        <div className="advanced-features-bar">
-          <button 
-            className="advanced-feature-btn" 
-            onClick={() => setShowWechatShare(!showWechatShare)}
+        <main className="fm-main">
+          {/* 顶部栏 */}
+          <header
+            className={`fm-topbar ${isAdmin ? "admin-topbar" : "visitor-topbar"}`}
           >
-            📱 {showWechatShare ? "隐藏" : "显示"}微信分享
-          </button>
-        </div>
+            <div>
+              <h1>
+                {currentView === "dashboard" && "球队官网首页"}
+                {currentView === "club" && "球队介绍"}
+                {currentView === "playerLibrary" && "球队名单"}
+                {currentView === "players" && "球员详情"}
+                {currentView === "teamMatches" && "比赛详情中心"}
+                {currentView === "matches" && "个人比赛记录"}
+                {currentView === "lineup" && "阵容推荐"}
+                {currentView === "training" && "训练与考勤"}
+                {currentView === "rankings" && "数据排行榜"}
+                {currentView === "operations" && "球队运营中心"}
+                {currentView === "awards" && "奖项系统"}
+                {currentView === "coach" && "教练组"}
+              </h1>
+              <p>
+                {clubInfo.name} | {clubInfo.slogan}
+              </p>
+            </div>
+            <div className="top-actions">
+              <span className={`mode-pill ${isAdmin ? "admin" : "visitor"}`}>
+                {isAdmin ? "管理员" : "访客"}
+              </span>
+              {isAdmin && (
+                <button
+                  className={`top-mini-btn ${contentEditMode ? "active" : ""}`}
+                  data-content-editor-ignore
+                  onClick={() => setContentEditMode((value) => !value)}
+                >
+                  {contentEditMode ? "退出文字编辑" : "编辑页面文字"}
+                </button>
+              )}
+              {seasonOptions.length > 0 && currentView !== "dashboard" && (
+                <select
+                  className="season-select"
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                >
+                  <option value="全部赛季">全部赛季</option>
+                  {seasonOptions.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                className={`top-mini-btn ${cloudLoading ? "cloud-pill warn" : cloudStatus === "已同步" || cloudStatus === "已加载" ? "cloud-pill" : ""}`}
+                title={
+                  cloudError ||
+                  (isAdmin ? "点击立即保存到云端" : "点击重新读取云端数据")
+                }
+                onClick={async () => {
+                  try {
+                    if (isAdmin) {
+                      await upsertCloudData();
+                    } else {
+                      await loadCloudData();
+                    }
+                  } catch {
+                    // 错误已在函数内处理
+                  }
+                }}
+                disabled={cloudLoading}
+              >
+                {cloudLoading ? "同步中..." : cloudStatus}
+              </button>
+              {isAdmin ? (
+                <button className="top-mini-btn" onClick={handleAdminLogout}>
+                  退出管理
+                </button>
+              ) : (
+                <button
+                  className="top-mini-btn active"
+                  onClick={() => setShowLogin(true)}
+                >
+                  管理员登录
+                </button>
+              )}
+            </div>
+          </header>
 
-        {/* 微信分享组件 */}
-        {showWechatShare && (
-          <Suspense fallback={<LoadingSpinner text="正在加载分享功能..." />}>
-          <WechatShare
-            title={`${clubInfo.name} - 足球球队管理`}
-            desc={`查看${clubInfo.name}的球员数据、比赛记录和统计分析`}
-            link={window.location.href}
-            imgUrl="https://via.placeholder.com/300x300/4ECDC4/ffffff?text=足球球队"
-            onShareSuccess={() => console.log('分享成功')}
-            onShareError={(err) => console.error('分享失败:', err)}
-          />
-          </Suspense>
-        )}
-      </main>
-    </div>
+          {cloudError && (
+            <div className="cloud-error-notice" role="status">
+              <div>
+                <strong>云端暂时无法连接</strong>
+                <span>
+                  {isAdmin
+                    ? "当前修改尚未保存，请等待 Supabase 恢复后重试。"
+                    : "当前显示本机缓存，点击右侧按钮重新读取。"}
+                </span>
+              </div>
+              <button
+                onClick={
+                  isAdmin && cloudReady ? upsertCloudData : loadCloudData
+                }
+                disabled={cloudLoading}
+              >
+                {cloudLoading
+                  ? "连接中..."
+                  : isAdmin && cloudReady
+                    ? "重新保存"
+                    : "重新读取"}
+              </button>
+            </div>
+          )}
+
+          {/* 全局错误提示 */}
+          {pageError && (
+            <div
+              className="global-error-bar"
+              style={{
+                margin: "0 14px",
+                padding: "12px 16px",
+                background: "rgba(255,107,107,0.12)",
+                border: "1px solid rgba(255,107,107,0.3)",
+                borderRadius: "12px",
+                color: "var(--red)",
+                fontWeight: 800,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span>{pageError}</span>
+              <button
+                className="small-ghost-btn"
+                onClick={() => setPageError("")}
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* 加载状态 */}
+          {pageLoading && <LoadingSpinner size="large" text="加载中..." />}
+
+          {/* 登录弹窗 */}
+          {showLogin && (
+            <div
+              className="login-modal-backdrop"
+              onClick={() => setShowLogin(false)}
+            >
+              <div
+                className="login-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-login-title"
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setShowLogin(false);
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="login-modal-head">
+                  <div>
+                    <h2 id="admin-login-title">管理员登录</h2>
+                    <p>输入密码后登录管理员模式，可编辑所有数据。</p>
+                  </div>
+                  <button
+                    className="login-close-btn"
+                    onClick={() => setShowLogin(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <label className="login-label">Supabase 管理员账户</label>
+                <input
+                  type="email"
+                  placeholder="Supabase 管理员邮箱（推荐）"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                />
+                <input
+                  type="password"
+                  placeholder="请输入管理员密码"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAdminLogin();
+                  }}
+                  autoFocus
+                />
+                {loginError && <div className="login-error">{loginError}</div>}
+                <div className="login-action-row">
+                  <button
+                    className="small-ghost-btn"
+                    onClick={() => setShowLogin(false)}
+                  >
+                    取消
+                  </button>
+                  <button className="primary-btn" onClick={handleAdminLogin}>
+                    登录
+                  </button>
+                </div>
+                <div className="login-tip">
+                  <small>
+                    推荐使用 Supabase
+                    管理员邮箱登录。邮箱留空时暂时兼容旧管理员密码。
+                  </small>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="admin-nav">
+              {[
+                ["operations", "运营与备份"],
+                ["club", "品牌与球队资料"],
+                ["playerLibrary", "球员管理"],
+                ["teamMatches", "比赛管理"],
+                ["awards", "奖项管理"],
+                ["lineup", "战术板"],
+                ["training", "训练考勤"],
+                ["coach", "教练组"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  className={view === key ? "active" : ""}
+                  onClick={() => setView(key)}
+                >
+                  {label}
+                </button>
+              ))}
+              {previewReadOnly && <span>独立预览 · 云端写入关闭</span>}
+            </div>
+          )}
+          {cloudLoading && !cloudReady && (
+            <div className="cloud-loading-state" role="status">
+              正在读取球队云端数据…
+            </div>
+          )}
+          {/* 页面路由 */}
+          {(cloudReady || players.length > 0) && (
+            <Suspense fallback={<LoadingSpinner text="正在加载页面..." />}>
+              {currentView === "dashboard" && (
+                <HomeShowcasePage
+                  clubInfo={clubInfo}
+                  teamStats={teamStats}
+                  latestTeamMatch={latestTeamMatch}
+                  teamMatches={filteredTeamMatches}
+                  manualAwards={manualAwards}
+                  featuredPlayers={featuredPlayers}
+                  ranking={ranking}
+                  mvp={mvp}
+                  nextMatch={nextMatch}
+                  setView={setView}
+                  setSelectedName={setSelectedName}
+                  setSelectedTeamMatchId={setSelectedTeamMatchId}
+                />
+              )}
+
+              {currentView === "club" && (
+                <ClubInfoPage
+                  clubInfo={clubInfo}
+                  setClubInfo={setClubInfo}
+                  isAdmin={isAdmin}
+                  uploadImage={uploadPlayerImage}
+                />
+              )}
+
+              {currentView === "playerLibrary" && (
+                <PlayerLibraryPage
+                  players={players}
+                  playerForm={playerForm}
+                  setPlayerForm={setPlayerForm}
+                  addPlayer={addPlayer}
+                  setSelectedName={setSelectedName}
+                  setView={setView}
+                  isAdmin={isAdmin}
+                  clubInfo={clubInfo}
+                  onUploadPhoto={handleUploadPlayerFormPhoto}
+                  onDeletePhoto={handleDeletePlayerFormPhoto}
+                  onUploadCard={handleUploadPlayerFormCard}
+                  onDeleteCard={handleDeletePlayerFormCard}
+                  importPlayers={importPlayers}
+                />
+              )}
+
+              {currentView === "players" && selectedPlayer && (
+                <div className="player-layout">
+                  {/* 左侧球员列表 */}
+                  <aside className="player-list">
+                    {categories.map((category) => (
+                      <div className="player-group" key={category}>
+                        <h3>{category || "未分组"}</h3>
+                        {players
+                          .filter((p) => p.category === category)
+                          .sort(
+                            (a, b) =>
+                              Number(a.number || 0) - Number(b.number || 0),
+                          )
+                          .map((player) => (
+                            <button
+                              key={player.name}
+                              className={`player-row ${player.name === selectedName ? "active" : ""}`}
+                              onClick={() => setSelectedName(player.name)}
+                            >
+                              <span>#{player.number}</span>
+                              <strong>{player.name}</strong>
+                              <small>{player.position || "位置待补充"}</small>
+                            </button>
+                          ))}
+                      </div>
+                    ))}
+                  </aside>
+
+                  {/* 球员详情 */}
+                  <PlayerDetail
+                    player={selectedPlayer}
+                    clubInfo={clubInfo}
+                    awardStats={awardStats}
+                    manualAwards={manualAwards}
+                    onToggleMark={(index) =>
+                      togglePlayerMatchMark(selectedPlayer.name, index)
+                    }
+                    onEdit={(match, index) => {
+                      setPersonalMatchEdit({
+                        playerName: selectedPlayer.name,
+                        index,
+                      });
+                      setView("matches");
+                    }}
+                    onDelete={(index) =>
+                      deletePlayerMatchRecord(selectedPlayer.name, index)
+                    }
+                    editable={isAdmin}
+                    isAdmin={isAdmin}
+                    onUploadPhoto={handleUploadSelectedPlayerPhoto}
+                    onDeletePhoto={handleDeleteSelectedPlayerPhoto}
+                    onUploadCard={handleUploadSelectedPlayerCard}
+                    onDeleteCard={handleDeleteSelectedPlayerCard}
+                    teamMatches={teamMatches}
+                    onOpenMatches={() => {
+                      setPersonalMatchEdit(null);
+                      setView("matches");
+                    }}
+                    onUpdateField={handleUpdateSelectedPlayerField}
+                  />
+                </div>
+              )}
+
+              {currentView === "players" && !selectedPlayer && (
+                <section className="dashboard-grid">
+                  <div className="panel wide">
+                    <EmptyState
+                      title="请选择球员"
+                      text="从左侧列表中选择一名球员查看详情。"
+                      icon="👤"
+                    />
+                  </div>
+                </section>
+              )}
+
+              {currentView === "teamMatches" && (
+                <TeamMatchesPage
+                  clubInfo={clubInfo}
+                  players={players}
+                  teamMatches={filteredTeamMatches}
+                  nextMatch={nextMatch}
+                  teamMatchForm={teamMatchForm}
+                  setTeamMatchForm={setTeamMatchForm}
+                  addTeamMatch={addTeamMatch}
+                  deleteTeamMatch={(id) => {
+                    deleteTeamMatch(id);
+                  }}
+                  isAdmin={isAdmin}
+                  selectedTeamMatchId={selectedTeamMatchId}
+                  setSelectedTeamMatchId={setSelectedTeamMatchId}
+                  setSelectedName={setSelectedName}
+                  setView={setView}
+                  onUpdateMatch={(edited) => {
+                    if (!requireAdmin()) return;
+                    const scores = {
+                      ourScore: Math.max(0, Number(edited.ourScore) || 0),
+                      opponentScore: Math.max(
+                        0,
+                        Number(edited.opponentScore) || 0,
+                      ),
+                    };
+                    updateTeamMatch(
+                      edited.id,
+                      (old) => {
+                        const baseline = deriveMatchFromEvents(
+                          old,
+                          [],
+                        ).eventBase;
+                        return {
+                          ...old,
+                          ...edited,
+                          ...scores,
+                          eventBase: {
+                            ...baseline,
+                            ourScore: Math.max(
+                              0,
+                              scores.ourScore -
+                                (old.events || []).filter(
+                                  (e) => e.type === "goal",
+                                ).length,
+                            ),
+                            opponentScore: Math.max(
+                              0,
+                              scores.opponentScore -
+                                (old.events || []).filter(
+                                  (e) => e.type === "opponent_goal",
+                                ).length,
+                            ),
+                          },
+                        };
+                      },
+                      true,
+                    );
+                  }}
+                  onSetRegistration={setMatchRegistration}
+                  onSetSquadRole={setMatchSquadRole}
+                  onUpdateSquadMeta={updateMatchSquadMeta}
+                  onImportTactics={importTacticsToMatch}
+                  onAddEvent={addTeamMatchEvent}
+                  onDeleteEvent={deleteTeamMatchEvent}
+                  onSetMatchStatus={setTeamMatchStatus}
+                />
+              )}
+
+              {currentView === "matches" && selectedPlayer && (
+                <PersonalMatchPage
+                  key={selectedPlayer.name}
+                  initialEdit={personalMatchEdit}
+                  selectedPlayer={selectedPlayer}
+                  matchForm={matchForm}
+                  setMatchForm={setMatchForm}
+                  addMatchRecord={addMatchRecord}
+                  updatePlayerMatchRecord={updatePlayerMatchRecord}
+                  deletePlayerMatchRecord={deletePlayerMatchRecord}
+                  togglePlayerMatchMark={togglePlayerMatchMark}
+                  isAdmin={isAdmin}
+                />
+              )}
+
+              {currentView === "matches" && !selectedPlayer && (
+                <section className="dashboard-grid">
+                  <div className="panel wide">
+                    <EmptyState
+                      title="请先选择球员"
+                      text="在球队名单或球员详情中选择一名球员后再查看个人比赛记录。"
+                      icon="📊"
+                    />
+                  </div>
+                </section>
+              )}
+
+              {currentView === "lineup" && (
+                <LineupPage
+                  bestLineup={bestLineup}
+                  players={players}
+                  positions={tacticsPositions}
+                  setPositions={setTacticsPositions}
+                  isAdmin={isAdmin}
+                />
+              )}
+
+              {currentView === "training" && (
+                <TrainingPage
+                  players={players}
+                  sessions={trainingSessions}
+                  setSessions={setTrainingSessions}
+                  isAdmin={isAdmin}
+                />
+              )}
+
+              {currentView === "rankings" && (
+                <RankingsPage
+                  players={filteredPlayers}
+                  teamMatches={filteredTeamMatches}
+                  ranking={ranking}
+                  teamStats={teamStats}
+                />
+              )}
+
+              {currentView === "operations" && (
+                <OperationsPage
+                  clubInfo={clubInfo}
+                  nextMatch={nextMatch}
+                  updateNextMatch={updateNextMatch}
+                  teamMatches={teamMatches}
+                  players={players}
+                  isAdmin={isAdmin}
+                  exportBackup={exportBackup}
+                  importText={importText}
+                  setImportText={setImportText}
+                  importBackup={importBackup}
+                  restoreLocalBackup={restoreLocalBackup}
+                  backupMessage={backupMessage}
+                  setSelectedTeamMatchId={setSelectedTeamMatchId}
+                  setView={setView}
+                />
+              )}
+
+              {currentView === "awards" && (
+                <AwardsPage
+                  clubInfo={clubInfo}
+                  setClubInfo={setClubInfo}
+                  players={filteredPlayers}
+                  coaches={coaches}
+                  teamMatches={filteredTeamMatches}
+                  setTeamMatches={setTeamMatches}
+                  manualAwards={manualAwards}
+                  setManualAwards={setManualAwards}
+                  awardStats={awardStats}
+                  isAdmin={isAdmin}
+                />
+              )}
+
+              {currentView === "coach" && (
+                <CoachPage
+                  coaches={coaches}
+                  selectedCoach={selectedCoach}
+                  selectedCoachName={selectedCoachName}
+                  setSelectedCoachName={setSelectedCoachName}
+                  coachMatchForm={coachMatchForm}
+                  setCoachMatchForm={setCoachMatchForm}
+                  addCoachMatchRecord={addCoachMatchRecord}
+                  toggleCoachMatchMark={toggleCoachMatchMark}
+                  ranking={ranking}
+                  resetData={resetData}
+                  isAdmin={isAdmin}
+                />
+              )}
+            </Suspense>
+          )}
+
+          {/* 高级功能入口 */}
+          <div className="advanced-features-bar">
+            <button
+              className="advanced-feature-btn"
+              onClick={() => setShowWechatShare(!showWechatShare)}
+            >
+              📱 {showWechatShare ? "隐藏" : "显示"}微信分享
+            </button>
+          </div>
+
+          {/* 微信分享组件 */}
+          {showWechatShare && (
+            <Suspense fallback={<LoadingSpinner text="正在加载分享功能..." />}>
+              <WechatShare
+                title={`${clubInfo.name} - 足球球队管理`}
+                desc={`查看${clubInfo.name}的球员数据、比赛记录和统计分析`}
+                link={window.location.href}
+                imgUrl={new URL(clubLogo(clubInfo), location.origin).href}
+                onShareSuccess={() => console.log("分享成功")}
+                onShareError={(err) => console.error("分享失败:", err)}
+              />
+            </Suspense>
+          )}
+        </main>
+        <ClubFooter
+          clubInfo={clubInfo}
+          setView={setView}
+          onAdmin={() => (isAdmin ? setView("operations") : setShowLogin(true))}
+        />
+      </div>
     </ContentEditor>
   );
 }

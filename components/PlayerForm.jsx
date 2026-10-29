@@ -10,6 +10,8 @@ function PlayerForm({
   error = null,
   onUploadPhoto,
   onDeletePhoto,
+  onUploadCard,
+  onDeleteCard,
 }) {
   const [formErrors, setFormErrors] = useState({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -80,7 +82,7 @@ function PlayerForm({
       <label className="player-form-wide"><span>标签</span><input name="tags" value={playerForm.tags} onChange={handleChange} placeholder="多个标签用逗号分隔" /></label>
       <label className="player-form-wide"><span>球员简介</span><textarea name="summary" value={playerForm.summary} onChange={handleChange} /></label>
 
-      <div className="player-photo-form-row">
+      <div className="player-photo-form-row"><ImageDropzone title="完整球员卡" description="完整卡面独立保存，不覆盖普通照片" value={playerForm.cardImage} onUpload={onUploadCard} onDelete={onDeleteCard} fit="contain" />
         <ImageDropzone title="球员照片" description="手机相册或电脑拖入，建议使用竖版半身照" value={playerForm.photo} onUpload={handlePhotoFile} onDelete={onDeletePhoto} uploading={uploadingPhoto} />
       </div>
 

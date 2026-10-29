@@ -1,157 +1,178 @@
-import React from "react";
-
-function KitImageUploader({ title, image, text, editable, onUpload, onRemove }) {
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // 这里应该调用 readImageAsDataUrl 函数
-      // 由于是组件拆分，这个函数需要在父组件中实现
-      // 暂时留空，由父组件处理
+import React, { useState } from "react";
+import { PageIntro, ClubBadge } from "./ClubUI";
+import { clubLogo, clubBackground } from "../src/clubData";
+import ImageDropzone from "./ImageDropzone";
+export default function ClubInfoPage({
+  clubInfo,
+  setClubInfo,
+  isAdmin,
+  uploadImage,
+}) {
+  const [message, setMessage] = useState("");
+  const change = (key, value) =>
+    setClubInfo((previous) => ({ ...previous, [key]: value }));
+  const upload = async (file, key) => {
+    try {
+      const url = await uploadImage(file, "club", key);
+      change(key, url);
+      setMessage("图片已上传，正在同步球队资料。");
+    } catch (e) {
+      setMessage(e.message);
+      throw e;
     }
   };
-
+  const fields = [
+    ["name", "球队名称"],
+    ["shortName", "球队简称"],
+    ["city", "城市"],
+    ["homeGround", "球队主场"],
+    ["homeKit", "主场球衣"],
+    ["awayKit", "客场球衣"],
+    ["slogan", "球队口号"],
+  ];
   return (
-    <div className="kit-image-card">
-      <div className="kit-image-title">
-        <strong>{title}</strong>
-        <span>{text}</span>
-      </div>
-      <div className="kit-image-preview">
-        {image ? (
-          <img src={image} alt={title} loading="lazy" decoding="async" />
-        ) : (
-          <div className="kit-image-empty">暂无图片</div>
-        )}
-      </div>
-      {editable && (
-        <div className="kit-image-actions">
-          <label className="upload-btn small">
-            上传图片
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-          </label>
-          {image && (
-            <button className="small-ghost-btn" onClick={onRemove}>
-              移除
-            </button>
-          )}
+    <div className="match-page club-profile-page">
+      <PageIntro
+        en="OUR CLUB"
+        title="江特FC · 我们的主场"
+        text={clubInfo.slogan || "因热爱相聚，为球队而战。"}
+      >
+        <ClubBadge clubInfo={clubInfo} />
+      </PageIntro>
+      <section className="panel">
+        <div className="brand-image-grid">
+          <img
+            style={{ width: "100%", height: 220, objectFit: "contain" }}
+            src={clubLogo(clubInfo)}
+            alt="江特FC队徽"
+          />
+          <img
+            style={{ width: "100%", height: 220, objectFit: "contain" }}
+            src={clubBackground(clubInfo)}
+            alt="江特FC品牌背景"
+          />
         </div>
+        <h2 style={{ marginTop: 30 }}>关于江特FC</h2>
+        <p>{clubInfo.description || "每一次并肩，都是新的足球故事。"}</p>
+        <div className="profile-fact-grid">
+          {fields
+            .filter(([key]) => !["name", "shortName", "slogan"].includes(key))
+            .map(([key, label]) => (
+              <div className="profile-fact" key={key}>
+                <span>{label}</span>
+                <strong>{clubInfo[key] || "暂无记录"}</strong>
+              </div>
+            ))}
+        </div>
+      </section>
+      {isAdmin && (
+        <section className="panel">
+          <h2>品牌与球队资料</h2>
+          <div className="form-grid">
+            {fields.map(([key, label]) => (
+              <label key={key}>
+                {label}
+                <input
+                  value={clubInfo[key] || ""}
+                  onChange={(e) => change(key, e.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+          <label>
+            球队介绍
+            <textarea
+              value={clubInfo.description || ""}
+              onChange={(e) => change("description", e.target.value)}
+            />
+          </label>
+          <div className="brand-image-grid">
+            <ImageDropzone
+              title="球队logo"
+              description="透明底PNG更适合导航展示"
+              fit="contain"
+              value={clubLogo(clubInfo)}
+              onUpload={(file) => upload(file, "logo")}
+              onDelete={() => change("logo", "")}
+            />
+            <ImageDropzone
+              title="首页背景 / 球队合照"
+              description="横版图片，建议宽度1600像素以上"
+              fit="contain"
+              value={clubBackground(clubInfo)}
+              onUpload={(file) => upload(file, "background")}
+              onDelete={() => change("background", "")}
+            />
+          </div>
+          {message && <p role="status">{message}</p>}
+        </section>
+      )}
+      <section className="panel">
+        <h2>球队球衣</h2>
+        <div className="kit-image-grid">
+          {[
+            ["homeKitImage", "主场球衣"],
+            ["awayKitImage", "客场球衣"],
+            ["thirdKitImage", "第三球衣"],
+          ].map(([key, title]) => (
+            <div key={key}>
+              {isAdmin ? (
+                <ImageDropzone
+                  title={title}
+                  value={clubInfo[key]}
+                  fit="contain"
+                  description="上传球衣图片"
+                  onUpload={(file) => upload(file, key)}
+                  onDelete={() => change(key, "")}
+                />
+              ) : (
+                <div className="kit-image-card">
+                  <h3>{title}</h3>
+                  {clubInfo[key] ? (
+                    <img
+                      src={clubInfo[key]}
+                      alt={title}
+                      style={{
+                        height: 240,
+                        width: "100%",
+                        objectFit: "contain",
+                      }}
+                    />
+                  ) : (
+                    <p>暂无图片</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+      {isAdmin && (
+        <section className="panel">
+          <h2>合作伙伴</h2>
+          <p>
+            每行一位合作伙伴，支持“名称 | 图片URL”；未填写时前台展示待公布。
+          </p>
+          <textarea
+            aria-label="合作伙伴"
+            value={(clubInfo.sponsors || [])
+              .map((s) => s.name + (s.image ? " | " + s.image : ""))
+              .join("\n")}
+            onChange={(e) =>
+              change(
+                "sponsors",
+                e.target.value
+                  .split("\n")
+                  .filter(Boolean)
+                  .map((line) => {
+                    const [name, image] = line.split("|").map((s) => s.trim());
+                    return { name, image: image || "" };
+                  }),
+              )
+            }
+          />
+        </section>
       )}
     </div>
   );
 }
-
-function ClubInfoPage({ clubInfo, setClubInfo, isAdmin }) {
-  return (
-    <section className="dashboard-grid">
-      <div className="panel wide club-profile-card">
-        <div className="club-profile-left">
-          <div className="club-big-badge">{clubInfo.shortName || "FC"}</div>
-          <div>
-            <h2>{clubInfo.name}</h2>
-            <p>{clubInfo.slogan}</p>
-            <small>
-              {clubInfo.city}｜主场：{clubInfo.homeGround}
-            </small>
-          </div>
-        </div>
-        <div className="club-kit-preview">
-          <div className="kit-shirt home-kit"></div>
-          <div className="kit-shirt away-kit"></div>
-        </div>
-      </div>
-
-      {!isAdmin && (
-        <div className="panel wide">
-          <h2>访客模式</h2>
-          <p>当前仅展示球队信息。切换到管理员模式后可编辑球队介绍和上传球衣图片。</p>
-        </div>
-      )}
-      {isAdmin && (
-        <div className="panel wide">
-          <h2>球队介绍设置</h2>
-          <div className="form-grid">
-            <input
-              placeholder="球队名称"
-              value={clubInfo.name}
-              onChange={(e) => setClubInfo({ ...clubInfo, name: e.target.value })}
-            />
-            <input
-              placeholder="队徽简称，例如 CJ"
-              value={clubInfo.shortName}
-              onChange={(e) => setClubInfo({ ...clubInfo, shortName: e.target.value })}
-            />
-            <input
-              placeholder="城市"
-              value={clubInfo.city}
-              onChange={(e) => setClubInfo({ ...clubInfo, city: e.target.value })}
-            />
-            <input
-              placeholder="球队主场"
-              value={clubInfo.homeGround}
-              onChange={(e) => setClubInfo({ ...clubInfo, homeGround: e.target.value })}
-            />
-            <input
-              placeholder="主队球衣"
-              value={clubInfo.homeKit}
-              onChange={(e) => setClubInfo({ ...clubInfo, homeKit: e.target.value })}
-            />
-            <input
-              placeholder="客场球衣"
-              value={clubInfo.awayKit}
-              onChange={(e) => setClubInfo({ ...clubInfo, awayKit: e.target.value })}
-            />
-            <input
-              placeholder="球队口号"
-              value={clubInfo.slogan}
-              onChange={(e) => setClubInfo({ ...clubInfo, slogan: e.target.value })}
-            />
-          </div>
-          <textarea
-            placeholder="球队简介"
-            value={clubInfo.description}
-            onChange={(e) => setClubInfo({ ...clubInfo, description: e.target.value })}
-          />
-        </div>
-      )}
-
-      <div className="panel wide">
-        <h2>球队球衣图片展示</h2>
-        <p>
-          可上传主场、客场、第三球衣图片，用于球队介绍页展示。图片会保存在浏览器本地。
-        </p>
-        <div className="kit-image-grid">
-          <KitImageUploader
-            title="主场球衣"
-            image={clubInfo.homeKitImage}
-            text={clubInfo.homeKit}
-            editable={isAdmin}
-            onUpload={(image) => setClubInfo({ ...clubInfo, homeKitImage: image })}
-            onRemove={() => setClubInfo({ ...clubInfo, homeKitImage: "" })}
-          />
-          <KitImageUploader
-            title="客场球衣"
-            image={clubInfo.awayKitImage}
-            text={clubInfo.awayKit}
-            editable={isAdmin}
-            onUpload={(image) => setClubInfo({ ...clubInfo, awayKitImage: image })}
-            onRemove={() => setClubInfo({ ...clubInfo, awayKitImage: "" })}
-          />
-          <KitImageUploader
-            title="第三球衣"
-            image={clubInfo.thirdKitImage}
-            text="备用 / 特别版球衣"
-            editable={isAdmin}
-            onUpload={(image) => setClubInfo({ ...clubInfo, thirdKitImage: image })}
-            onRemove={() => setClubInfo({ ...clubInfo, thirdKitImage: "" })}
-          />
-        </div>
-      </div>
-      <div className="panel wide">
-        <h2>球队简介展示</h2>
-        <p>{clubInfo.description}</p>
-      </div>
-    </section>
-  );
-}
-
-export default ClubInfoPage;

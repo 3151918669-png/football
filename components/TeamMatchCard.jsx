@@ -28,7 +28,7 @@ function TeamMatchCard({ match, clubInfo, onClick, onDelete }) {
         </div>
         <div className="score-box">
           <strong>
-            {match.ourScore} : {match.opponentScore}
+            {status === "scheduled" ? "VS" : `${match.ourScore ?? "—"} : ${match.opponentScore ?? "—"}`}
           </strong>
           <span className={`result-badge ${cardState}`}>
             {status === "finished" ? (result === "win" ? "胜" : result === "draw" ? "平" : "负") : getMatchStatusLabel(match)}

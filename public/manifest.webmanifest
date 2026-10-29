@@ -1,0 +1,21 @@
+{
+  "name": "江特FC球队官网",
+  "short_name": "江特FC",
+  "description": "江特FC球队官网、球员数据与比赛管理",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#08264a",
+  "icons": [
+    {
+      "src": "/assets/club/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/club/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import HonorsWall from "./HonorsWall";
+import { PageIntro } from "./ClubUI";
 import React, { useState } from "react";
 import AwardCard from "./AwardCard";
 
@@ -25,6 +27,8 @@ function getSeasonKey(date) {
 }
 
 function AwardsPage({
+  clubInfo,
+  setClubInfo,
   players,
   coaches,
   teamMatches,
@@ -42,7 +46,9 @@ function AwardsPage({
     manualAwards.bestDefender || awardStats.bestDefender?.name || "暂无";
   const bestCoach =
     manualAwards.bestCoach ||
-    awardStats.coachRanking?.[0]?.name ||
+    (awardStats.coachRanking?.[0]?.totalMatches
+      ? awardStats.coachRanking[0].name
+      : "") ||
     "暂无";
 
   const setAward = (key, value) => {
@@ -60,8 +66,11 @@ function AwardsPage({
         } else {
           delete matchAwards[awardKey];
         }
-        return { ...match, matchAwards: Object.keys(matchAwards).length > 0 ? matchAwards : {} };
-      })
+        return {
+          ...match,
+          matchAwards: Object.keys(matchAwards).length > 0 ? matchAwards : {},
+        };
+      }),
     );
   };
 
@@ -83,6 +92,16 @@ function AwardsPage({
 
   return (
     <div className="match-page awards-v13-page">
+      <PageIntro
+        en="HONOURS"
+        title="将每一份闪光，珍藏"
+        text="球队荣誉、赛季表现与个人奖项，在这里留下印记。"
+      />
+      <HonorsWall
+        clubInfo={clubInfo}
+        setClubInfo={setClubInfo}
+        isAdmin={isAdmin}
+      />
       {/* 赛季奖项 */}
       <div className="panel awards-hero-panel">
         <div className="section-head-row">
@@ -94,26 +113,41 @@ function AwardsPage({
         </p>
       </div>
 
-      <div className="home-stat-grid" style={{ gridTemplateColumns: "repeat(4, minmax(160px, 1fr))" }}>
+      <div
+        className="home-stat-grid"
+        style={{ gridTemplateColumns: "repeat(4, minmax(160px, 1fr))" }}
+      >
         <AwardCard
           title="射手王"
           icon="⚽"
           name={topScorer}
-          value={awardStats.topScorer ? `${totalStat(awardStats.topScorer?.matches || [], "goals")} 球` : "-"}
+          value={
+            awardStats.topScorer
+              ? `${totalStat(awardStats.topScorer?.matches || [], "goals")} 球`
+              : "-"
+          }
           desc="赛季总进球最多"
         />
         <AwardCard
           title="助攻王"
           icon="🎯"
           name={assistKing}
-          value={awardStats.assistKing ? `${totalStat(awardStats.assistKing?.matches || [], "assists")} 助攻` : "-"}
+          value={
+            awardStats.assistKing
+              ? `${totalStat(awardStats.assistKing?.matches || [], "assists")} 助攻`
+              : "-"
+          }
           desc="赛季总助攻最多"
         />
         <AwardCard
           title="最佳防守"
           icon="🛡️"
           name={bestDefender}
-          value={awardStats.bestDefender ? `${awardStats.bestDefender?.matches?.length || 0} 场` : "-"}
+          value={
+            awardStats.bestDefender
+              ? `${awardStats.bestDefender?.matches?.length || 0} 场`
+              : "-"
+          }
           desc="后卫出勤表现"
         />
         <AwardCard
@@ -129,44 +163,66 @@ function AwardsPage({
       {isAdmin && (
         <div className="panel wide">
           <h2>手动调整奖项归属</h2>
-          <p>如自动推荐不合适，可手动指定获奖人。选择"使用自动推荐"将恢复系统推荐。</p>
+          <p>
+            如自动推荐不合适，可手动指定获奖人。选择"使用自动推荐"将恢复系统推荐。
+          </p>
           <div className="match-award-grid">
             <div className="award-field">
               <span>射手王</span>
               <p>自动推荐：{topScorerAuto}</p>
-              <select value={manualAwards.topScorer} onChange={(e) => setAward("topScorer", e.target.value)}>
+              <select
+                value={manualAwards.topScorer}
+                onChange={(e) => setAward("topScorer", e.target.value)}
+              >
                 <option value="">使用自动推荐</option>
                 {players.map((p) => (
-                  <option key={`ts-${p.name}`} value={p.name}>{p.name}</option>
+                  <option key={`ts-${p.name}`} value={p.name}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="award-field">
               <span>助攻王</span>
               <p>自动推荐：{assistKingAuto}</p>
-              <select value={manualAwards.assistKing} onChange={(e) => setAward("assistKing", e.target.value)}>
+              <select
+                value={manualAwards.assistKing}
+                onChange={(e) => setAward("assistKing", e.target.value)}
+              >
                 <option value="">使用自动推荐</option>
                 {players.map((p) => (
-                  <option key={`ak-${p.name}`} value={p.name}>{p.name}</option>
+                  <option key={`ak-${p.name}`} value={p.name}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="award-field">
               <span>最佳防守</span>
               <p>自动推荐：{bestDefenderAuto}</p>
-              <select value={manualAwards.bestDefender} onChange={(e) => setAward("bestDefender", e.target.value)}>
+              <select
+                value={manualAwards.bestDefender}
+                onChange={(e) => setAward("bestDefender", e.target.value)}
+              >
                 <option value="">使用自动推荐</option>
                 {players.map((p) => (
-                  <option key={`bd-${p.name}`} value={p.name}>{p.name}</option>
+                  <option key={`bd-${p.name}`} value={p.name}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="award-field">
               <span>最佳教练</span>
-              <select value={manualAwards.bestCoach} onChange={(e) => setAward("bestCoach", e.target.value)}>
+              <select
+                value={manualAwards.bestCoach}
+                onChange={(e) => setAward("bestCoach", e.target.value)}
+              >
                 <option value="">使用自动推荐</option>
                 {coaches.map((c) => (
-                  <option key={`bc-${c.name}`} value={c.name}>{c.name}</option>
+                  <option key={`bc-${c.name}`} value={c.name}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -180,68 +236,202 @@ function AwardsPage({
           <h2>每场奖项</h2>
           <span className="roster-count">{teamMatches.length} 场比赛</span>
         </div>
-        <p>为每场比赛单独设置进攻、防守、关键球员等奖项归属。</p>
+        <p>
+          {isAdmin
+            ? "为每场比赛单独设置进攻、防守、关键球员等奖项归属。"
+            : "记录每场比赛中闪光的队员。"}
+        </p>
 
         {teamMatches.length === 0 ? (
           <p>暂无比赛记录，添加整场比赛后可设置单场奖项。</p>
+        ) : isAdmin ? (
+          <div className="match-awards-board">
+            {teamMatches
+              .filter(
+                (match) =>
+                  match.status !== "scheduled" && match.status !== "live",
+              )
+              .map((match) => (
+                <div className="match-award-editor" key={match.id}>
+                  <div className="match-award-head">
+                    <div>
+                      <strong>
+                        {match.date} | {match.opponent}
+                      </strong>
+                      <span>
+                        {match.ourScore} : {match.opponentScore} |{" "}
+                        {match.stadium}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="match-award-grid">
+                    <div className="award-field">
+                      <span>MVP</span>
+                      <select
+                        value={
+                          (match.matchAwards || {}).mvp ||
+                          match.bestPlayer ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          updateMatchAward(match.id, "mvp", e.target.value)
+                        }
+                        disabled={!isAdmin}
+                      >
+                        <option value="">使用自动推荐</option>
+                        {players.map((p) => (
+                          <option key={p.name} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="award-field">
+                      <span>最佳防守</span>
+                      <select
+                        value={(match.matchAwards || {}).bestDefender || ""}
+                        onChange={(e) =>
+                          updateMatchAward(
+                            match.id,
+                            "bestDefender",
+                            e.target.value,
+                          )
+                        }
+                        disabled={!isAdmin}
+                      >
+                        <option value="">暂无</option>
+                        {players.map((p) => (
+                          <option key={p.name} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="award-field">
+                      <span>最佳进攻</span>
+                      <select
+                        value={(match.matchAwards || {}).bestAttacker || ""}
+                        onChange={(e) =>
+                          updateMatchAward(
+                            match.id,
+                            "bestAttacker",
+                            e.target.value,
+                          )
+                        }
+                        disabled={!isAdmin}
+                      >
+                        <option value="">暂无</option>
+                        {players.map((p) => (
+                          <option key={p.name} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="award-field">
+                      <span>拼抢之王</span>
+                      <select
+                        value={(match.matchAwards || {}).pressingKing || ""}
+                        onChange={(e) =>
+                          updateMatchAward(
+                            match.id,
+                            "pressingKing",
+                            e.target.value,
+                          )
+                        }
+                        disabled={!isAdmin}
+                      >
+                        <option value="">暂无</option>
+                        {players.map((p) => (
+                          <option key={p.name} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="award-field">
+                      <span>关键先生</span>
+                      <select
+                        value={(match.matchAwards || {}).keyMan || ""}
+                        onChange={(e) =>
+                          updateMatchAward(match.id, "keyMan", e.target.value)
+                        }
+                        disabled={!isAdmin}
+                      >
+                        <option value="">暂无</option>
+                        {players.map((p) => (
+                          <option key={p.name} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="award-field">
+                      <span>进步之星</span>
+                      <select
+                        value={(match.matchAwards || {}).risingStar || ""}
+                        onChange={(e) =>
+                          updateMatchAward(
+                            match.id,
+                            "risingStar",
+                            e.target.value,
+                          )
+                        }
+                        disabled={!isAdmin}
+                      >
+                        <option value="">暂无</option>
+                        {players.map((p) => (
+                          <option key={p.name} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
         ) : (
           <div className="match-awards-board">
-            {teamMatches.map((match) => (
-              <div className="match-award-editor" key={match.id}>
-                <div className="match-award-head">
-                  <div>
-                    <strong>{match.date} | {match.opponent}</strong>
-                    <span>
-                      {match.ourScore} : {match.opponentScore} | {match.stadium}
-                    </span>
+            {teamMatches
+              .filter((m) => m.status !== "scheduled" && m.status !== "live")
+              .map((m) => (
+                <article className="match-award-editor" key={m.id}>
+                  <div className="match-award-head">
+                    <strong>
+                      {m.date} · 对阵{m.opponent}
+                    </strong>
                   </div>
-                </div>
-                <div className="match-award-grid">
-                  <div className="award-field">
-                    <span>MVP</span>
-                    <select value={(match.matchAwards || {}).mvp || match.bestPlayer || ""} onChange={(e) => updateMatchAward(match.id, "mvp", e.target.value)} disabled={!isAdmin}>
-                      <option value="">使用自动推荐</option>
-                      {players.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                    </select>
-                  </div>
-                  <div className="award-field">
-                    <span>最佳防守</span>
-                    <select value={(match.matchAwards || {}).bestDefender || ""} onChange={(e) => updateMatchAward(match.id, "bestDefender", e.target.value)} disabled={!isAdmin}>
-                      <option value="">暂无</option>
-                      {players.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                    </select>
-                  </div>
-                  <div className="award-field">
-                    <span>最佳进攻</span>
-                    <select value={(match.matchAwards || {}).bestAttacker || ""} onChange={(e) => updateMatchAward(match.id, "bestAttacker", e.target.value)} disabled={!isAdmin}>
-                      <option value="">暂无</option>
-                      {players.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                    </select>
-                  </div>
-                  <div className="award-field">
-                    <span>拼抢之王</span>
-                    <select value={(match.matchAwards || {}).pressingKing || ""} onChange={(e) => updateMatchAward(match.id, "pressingKing", e.target.value)} disabled={!isAdmin}>
-                      <option value="">暂无</option>
-                      {players.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                    </select>
-                  </div>
-                  <div className="award-field">
-                    <span>关键先生</span>
-                    <select value={(match.matchAwards || {}).keyMan || ""} onChange={(e) => updateMatchAward(match.id, "keyMan", e.target.value)} disabled={!isAdmin}>
-                      <option value="">暂无</option>
-                      {players.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                    </select>
-                  </div>
-                  <div className="award-field">
-                    <span>进步之星</span>
-                    <select value={(match.matchAwards || {}).risingStar || ""} onChange={(e) => updateMatchAward(match.id, "risingStar", e.target.value)} disabled={!isAdmin}>
-                      <option value="">暂无</option>
-                      {players.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ))}
+                  {Object.values(m.matchAwards || {}).some(Boolean) ||
+                  m.bestPlayer ? (
+                    <div className="match-award-grid">
+                      {[
+                        ["mvp", "MVP"],
+                        ["bestDefender", "最佳防守"],
+                        ["bestAttacker", "最佳进攻"],
+                        ["pressingKing", "拼抢之王"],
+                        ["keyMan", "关键先生"],
+                        ["risingStar", "进步之星"],
+                      ]
+                        .filter(
+                          ([key]) =>
+                            (m.matchAwards || {})[key] ||
+                            (key === "mvp" && m.bestPlayer),
+                        )
+                        .map(([key, label]) => (
+                          <div className="award-field" key={key}>
+                            <span>{label}</span>
+                            <strong>
+                              {(m.matchAwards || {})[key] || m.bestPlayer}
+                            </strong>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <p style={{ marginTop: 18 }}>暂无已评选的个人奖项。</p>
+                  )}
+                </article>
+              ))}
           </div>
         )}
       </div>

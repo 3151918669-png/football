@@ -1,34 +1,60 @@
-import React from "react";
-
-function Navbar({ view, setView, clubInfo }) {
-  const navItems = [
-    { key: "dashboard", label: "首页", icon: "⌂" },
-    { key: "teamMatches", label: "比赛", icon: "⚽" },
-    { key: "playerLibrary", label: "球员", icon: "♟" },
-    { key: "rankings", label: "数据", icon: "▥" },
-    { key: "lineup", label: "阵容", icon: "◆" },
-    { key: "training", label: "训练", icon: "✓" },
-    { key: "club", label: "球队", icon: "◉" },
-    { key: "awards", label: "奖项", icon: "★" },
-    { key: "coach", label: "教练", icon: "♜" },
-    { key: "operations", label: "运营", icon: "⚙" },
+import React, { useState } from "react";
+import { ClubBadge } from "./ClubUI";
+export default function Navbar({ view, setView, clubInfo, isAdmin, onAdmin }) {
+  const [open, setOpen] = useState(false);
+  const nav = [
+    ["dashboard", "球队首页"],
+    ["teamMatches", "比赛"],
+    ["playerLibrary", "球员"],
+    ["rankings", "数据"],
+    ["awards", "奖杯/奖项"],
   ];
-
+  const go = (key) => {
+    setView(key);
+    setOpen(false);
+  };
   return (
-    <aside className="fm-left-nav">
-      <div className="club-badge">{clubInfo.shortName || "FC"}</div>
-      {navItems.map((item) => (
-        <button
-          key={item.key}
-          className={view === item.key ? "nav-item active" : "nav-item"}
-          onClick={() => setView(item.key)}
-        >
-          <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-          <span className="nav-label">{item.label}</span>
+    <header className="club-header">
+      <div className="club-utility">
+        <span>JIANGTE FOOTBALL CLUB</span>
+        <span>因热爱相聚 · 为球队而战</span>
+        <button onClick={onAdmin}>{isAdmin ? "管理中心" : "球队管理"} ↗</button>
+      </div>
+      <div className="club-nav">
+        <button className="brand" onClick={() => go("dashboard")}>
+          <ClubBadge clubInfo={clubInfo} />
+          <span>
+            <strong>江特FC</strong>
+            <small>JIANGTE FC</small>
+          </span>
         </button>
-      ))}
-    </aside>
+        <nav aria-label="主导航" className={open ? "open" : ""}>
+          {nav.map(([key, label]) => (
+            <button
+              key={key}
+              className={
+                view === key || (key === "playerLibrary" && view === "players")
+                  ? "active"
+                  : ""
+              }
+              onClick={() => go(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        <button className="nav-club-link" onClick={() => go("club")}>
+          我们的俱乐部 ↗
+        </button>
+        <button
+          className="menu-toggle"
+          aria-label="展开导航"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          {open ? "✕" : "☰"}
+        </button>
+      </div>
+    </header>
   );
 }
-
-export default Navbar;

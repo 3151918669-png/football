@@ -1,37 +1,63 @@
+import { playerCard } from "../src/clubData";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 function buildInitialPositions(bestLineup, players) {
   const lineup = [];
-  bestLineup["前场"].forEach((p, i) => lineup.push({ ...p, x: 25 + i * 25, y: 18 }));
-  bestLineup["中场"].forEach((p, i) => lineup.push({ ...p, x: 30 + i * 20, y: 43 }));
-  bestLineup["后卫"].filter((p) => p.position !== "GK").slice(0, 4).forEach((p, i) => lineup.push({ ...p, x: 20 + i * 20, y: 72 }));
-  const gk = players.find((p) => p.position === "GK" || p.category === "守门员" || String(p.position || "").includes("门将"));
-  if (gk) lineup.push({ ...gk, x: 50, y: 90 });
+  const fw = bestLineup["前场"];
+  if (fw[0]) lineup.push({ ...fw[0], x: 50, y: 12 });
+  fw.slice(1, 3).forEach((p, i) =>
+    lineup.push({ ...p, x: 32 + i * 36, y: 30 }),
+  );
+  bestLineup["中场"].forEach((p, i) =>
+    lineup.push({ ...p, x: 22 + i * 28, y: 49 }),
+  );
+  bestLineup["后卫"]
+    .slice(0, 4)
+    .forEach((p, i) => lineup.push({ ...p, x: 14 + i * 24, y: 69 }));
+  const gk = players.find((p) => p.category === "守门员");
+  if (gk) lineup.push({ ...gk, x: 50, y: 89 });
   return lineup;
 }
 
 function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
   const pitchRef = useRef(null);
   const [draggingName, setDraggingName] = useState("");
-  const initialPositions = useMemo(() => buildInitialPositions(bestLineup, players), [bestLineup, players]);
+  const initialPositions = useMemo(
+    () => buildInitialPositions(bestLineup, players),
+    [bestLineup, players],
+  );
+  const validPositions = positions.filter((p) =>
+    players.some((player) => player.name === p.name),
+  );
+  const displayPositions = (
+    validPositions.length ? validPositions : initialPositions
+  ).map((p) => ({
+    ...p,
+    ...players.find((item) => item.name === p.name),
+    x: p.x,
+    y: p.y,
+  }));
   useEffect(() => {
-    if (!positions.length) {
-      setPositions(initialPositions);
-      return;
-    }
-    const currentNames = new Set(positions.map((player) => player.name));
-    const missing = initialPositions.filter((player) => !currentNames.has(player.name));
-    if (missing.length) setPositions((current) => [...current, ...missing]);
-  }, [initialPositions]);
-
+    if (isAdmin && !positions.length) setPositions(initialPositions);
+  }, [isAdmin, initialPositions]);
   const movePlayer = (event, name) => {
     if (!isAdmin) return;
     const pitch = pitchRef.current;
     if (!pitch) return;
     const rect = pitch.getBoundingClientRect();
-    const x = Math.max(5, Math.min(95, ((event.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(5, Math.min(95, ((event.clientY - rect.top) / rect.height) * 100));
-    setPositions((current) => current.map((player) => player.name === name ? { ...player, x, y } : player));
+    const x = Math.max(
+      5,
+      Math.min(95, ((event.clientX - rect.left) / rect.width) * 100),
+    );
+    const y = Math.max(
+      5,
+      Math.min(95, ((event.clientY - rect.top) / rect.height) * 100),
+    );
+    setPositions((current) =>
+      current.map((player) =>
+        player.name === name ? { ...player, x, y } : player,
+      ),
+    );
   };
 
   const startDragging = (event, name) => {
@@ -58,14 +84,27 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
     ctx.strokeStyle = "rgba(255,255,255,.75)";
     ctx.lineWidth = 5;
     ctx.strokeRect(90, 150, 900, 1120);
-    ctx.beginPath(); ctx.moveTo(90, 710); ctx.lineTo(990, 710); ctx.stroke();
-    ctx.beginPath(); ctx.arc(540, 710, 115, 0, Math.PI * 2); ctx.stroke();
-    positions.forEach((player) => {
-      const x = 90 + player.x / 100 * 900;
-      const y = 150 + player.y / 100 * 1120;
-      ctx.beginPath(); ctx.fillStyle = "#f2d58a"; ctx.arc(x, y, 45, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#111"; ctx.textAlign = "center"; ctx.font = "bold 28px sans-serif"; ctx.fillText(player.number, x, y + 10);
-      ctx.fillStyle = "#fff"; ctx.font = "bold 25px sans-serif"; ctx.fillText(player.name, x, y + 78);
+    ctx.beginPath();
+    ctx.moveTo(90, 710);
+    ctx.lineTo(990, 710);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(540, 710, 115, 0, Math.PI * 2);
+    ctx.stroke();
+    displayPositions.forEach((player) => {
+      const x = 90 + (player.x / 100) * 900;
+      const y = 150 + (player.y / 100) * 1120;
+      ctx.beginPath();
+      ctx.fillStyle = "#f2d58a";
+      ctx.arc(x, y, 45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#111";
+      ctx.textAlign = "center";
+      ctx.font = "bold 28px sans-serif";
+      ctx.fillText(player.number, x, y + 10);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 25px sans-serif";
+      ctx.fillText(player.name, x, y + 78);
     });
     const link = document.createElement("a");
     link.download = `江特FC-阵容海报-${new Date().toISOString().slice(0, 10)}.png`;
@@ -78,12 +117,27 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
       <div className="panel wide tactics-toolbar">
         <div>
           <span className="home-kicker">TACTICS BOARD</span>
-          <h2>简易战术板</h2>
-          <p>{isAdmin ? "按住球员并拖动到目标位置，阵型会自动同步到云端。" : "访客可以查看当前战术阵型。"}</p>
+          <h2>球队阵容 · 战术板</h2>
+          <p>
+            {isAdmin
+              ? "按住球员并拖动到目标位置，阵型会自动同步到云端。"
+              : validPositions.length
+                ? "当前展示球队保存的战术阵容。"
+                : "4-3-2-1 阵型参考，按现有名单展示；实际首发以比赛名单为准。"}
+          </p>
         </div>
         <div className="tactics-toolbar-actions">
-          <button className="primary-btn" onClick={downloadPoster}>下载阵容海报</button>
-          {isAdmin && <button className="small-ghost-btn" onClick={() => setPositions(initialPositions)}>重置推荐阵型</button>}
+          <button className="primary-btn" onClick={downloadPoster}>
+            下载阵容海报
+          </button>
+          {isAdmin && (
+            <button
+              className="small-ghost-btn"
+              onClick={() => setPositions(initialPositions)}
+            >
+              重置推荐阵型
+            </button>
+          )}
         </div>
       </div>
 
@@ -109,7 +163,7 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
           <div className="tactics-center-circle" />
           <div className="tactics-box top" />
           <div className="tactics-box bottom" />
-          {positions.map((player) => (
+          {displayPositions.map((player) => (
             <button
               key={player.name}
               className="tactics-player"
@@ -119,7 +173,15 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
               }}
               aria-label={`拖动 ${player.name}`}
             >
-              <span>{player.number}</span>
+              {playerCard(player) ? (
+                <img
+                  className="pitch-card"
+                  src={playerCard(player)}
+                  alt={`${player.name}球员卡`}
+                />
+              ) : (
+                <span>{player.number}</span>
+              )}
               <strong>{player.name}</strong>
               <small>{player.position}</small>
             </button>
@@ -130,11 +192,28 @@ function LineupPage({ bestLineup, players, positions, setPositions, isAdmin }) {
       <div className="panel wide">
         <h2>替补与其他球员</h2>
         <div className="tactics-bench">
-          {players.filter((player) => !positions.some((position) => position.name === player.name)).map((player) => (
-            <button key={player.name} onClick={() => setPositions((current) => [...current, { ...player, x: 50, y: 50 }])}>
-              #{player.number} {player.name} · {player.position}
-            </button>
-          ))}
+          {players
+            .filter(
+              (player) =>
+                !displayPositions.some(
+                  (position) => position.name === player.name,
+                ),
+            )
+            .map((player) => (
+              <button
+                key={player.name}
+                disabled={!isAdmin}
+                onClick={() => {
+                  if (isAdmin)
+                    setPositions((current) => [
+                      ...(current.length ? current : initialPositions),
+                      { ...player, x: 50, y: 50 },
+                    ]);
+                }}
+              >
+                #{player.number} {player.name} · {player.position}
+              </button>
+            ))}
         </div>
       </div>
     </section>

@@ -1,59 +1,84 @@
 import React from "react";
-
-function AbilityRadarCard({ player }) {
-  const radarItems = ["速度", "射门", "盘带", "传球", "防守", "体能"];
-  const size = 260;
-
-  // 简单的雷达图占位
+export const abilityLabels = ["速度", "射门", "盘带", "传球", "防守", "体能"];
+export default function AbilityRadarCard({ player }) {
+  const attributes = player.attributes || {};
+  const valid = abilityLabels.some(
+    (label) => attributes[label] !== undefined && attributes[label] !== "",
+  );
+  const point = (i, value, r = 95) => {
+    const angle = ((-90 + i * 60) * Math.PI) / 180;
+    return `${150 + Math.cos(angle) * r * value},${145 + Math.sin(angle) * r * value}`;
+  };
   return (
-    <div className="ability-radar-card">
-      <div className="radar-chart-placeholder">
-        <div className="radar-grid">
-          {radarItems.map((item, index) => {
-            const angle = (index * 60 * Math.PI) / 180;
-            const value = player.attributes?.[item] || 0;
-            const radius = (value / 100) * 100;
-            const x = 130 + Math.cos(angle) * radius;
-            const y = 130 + Math.sin(angle) * radius;
-            
+    <section className="panel">
+      <span className="eyebrow">PLAYER ABILITY</span>
+      <h3 style={{ marginTop: 12 }}>能力雷达</h3>
+      {valid ? (
+        <svg
+          className="radar-svg"
+          viewBox="0 0 300 300"
+          role="img"
+          aria-label={abilityLabels
+            .map((l) => `${l} ${attributes[l] ?? "暂无记录"}`)
+            .join("，")}
+        >
+          {[0.2, 0.4, 0.6, 0.8, 1].map((r) => (
+            <polygon
+              key={r}
+              points={abilityLabels.map((_, i) => point(i, r)).join(" ")}
+              fill="none"
+              stroke="#cbd8e9"
+            />
+          ))}
+          {abilityLabels.map((_, i) => (
+            <line
+              key={i}
+              x1="150"
+              y1="145"
+              x2={point(i, 1).split(",")[0]}
+              y2={point(i, 1).split(",")[1]}
+              stroke="#d7e2ef"
+            />
+          ))}
+          <polygon
+            points={abilityLabels
+              .map((l, i) =>
+                point(
+                  i,
+                  Math.min(100, Math.max(0, Number(attributes[l]) || 0)) / 100,
+                ),
+              )
+              .join(" ")}
+            fill="#2875cf40"
+            stroke="#2875cf"
+            strokeWidth="2"
+          />
+          {abilityLabels.map((l, i) => {
+            const [x, y] = point(i, 1, 125).split(",");
             return (
-              <React.Fragment key={item}>
-                <div
-                  className="radar-point"
-                  style={{
-                    left: `${x}px`,
-                    top: `${y}px`,
-                  }}
-                  title={`${item}: ${value}`}
-                />
-                <div
-                  className="radar-label"
-                  style={{
-                    left: `${130 + Math.cos(angle) * 120}px`,
-                    top: `${130 + Math.sin(angle) * 120}px`,
-                  }}
-                >
-                  {item}
-                  <br />
-                  <strong>{value}</strong>
-                </div>
-              </React.Fragment>
+              <text
+                key={l}
+                x={x}
+                y={y}
+                textAnchor="middle"
+                fill="#47658a"
+                fontSize="11"
+              >
+                {l}
+                <tspan x={x} dy="15">
+                  {attributes[l] ?? "—"}
+                </tspan>
+              </text>
             );
           })}
+        </svg>
+      ) : (
+        <div className="ability-empty">
+          暂无能力值记录
+          <br />
+          <small>管理员录入后将显示雷达图。</small>
         </div>
-      </div>
-      <div className="radar-legend">
-        {radarItems.map((item) => (
-          <div key={item} className="radar-legend-item">
-            <span>{item}</span>
-            <b className={player.attributes?.[item] >= 75 ? "elite" : player.attributes?.[item] >= 65 ? "good" : "weak"}>
-              {player.attributes?.[item] || 0}
-            </b>
-          </div>
-        ))}
-      </div>
-    </div>
+      )}
+    </section>
   );
 }
-
-export default AbilityRadarCard;

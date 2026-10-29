@@ -1,13 +1,14 @@
 import React from "react";
+import {playerCard} from "../src/clubData";
 
 function PlayerFullCardShow({ player }) {
-  const fullCardImage = player.cardImage || "";
+  const fullCardImage = playerCard(player);
 
   return (
     <div className="full-card-show-card">
       <div className="full-card-show-head">
         <div>
-          <span>FC26 PLAYER CARD</span>
+          <span>JIANGTE FC / PLAYER CARD</span>
           <h4>{player.name}</h4>
         </div>
         <strong>{player.ability}</strong>
@@ -18,11 +19,11 @@ function PlayerFullCardShow({ player }) {
         ) : (
           <div className="full-card-show-empty">
             <b>暂无完整球星卡</b>
-            <small>管理员可在右侧"个人主页照片 / 球星卡图"上传完整卡图</small>
+            <small>等待上传这名队员的球员卡</small>
           </div>
         )}
       </div>
-      <div className="full-card-show-tip">此区域只读取完整球星卡图，不使用证件照。</div>
+      <div className="full-card-show-tip">江特FC · 每一位队员，都是球队的一部分。</div>
     </div>
   );
 }
