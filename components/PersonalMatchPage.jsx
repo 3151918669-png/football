@@ -86,7 +86,6 @@ function PersonalMatchPage({
 
     if (!matchForm.date.trim()) errors.date = "日期不能为空";
     if (!matchForm.opponent.trim()) errors.opponent = "对手不能为空";
-    if (!matchForm.rating.trim()) errors.rating = "评分不能为空";
     if (!matchForm.result) errors.result = "请选择比赛结果";
 
     if (
@@ -131,7 +130,7 @@ function PersonalMatchPage({
         result: matchForm.result,
         goals: Number(matchForm.goals || 0),
         assists: Number(matchForm.assists || 0),
-        rating: Number(matchForm.rating),
+        rating: matchForm.rating === '' ? '' : Number(matchForm.rating),
         saves: Number(matchForm.saves || 0),
         conceded: Number(matchForm.conceded || 0),
         cleanSheet: Boolean(matchForm.cleanSheet),
