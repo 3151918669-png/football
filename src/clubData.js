@@ -132,3 +132,22 @@ export function externalUrl(value) {
     return "";
   }
 }
+
+// Netdisk apps copy a whole share message, rather than just the URL.
+// Read old messages as well as normalize new submissions without changing other data.
+export function replayDetails(match = {}) {
+  const text = String(match.replayUrl || "").trim();
+  const candidates = text.match(/https?:\/\/[^\s<>"'，。；！？、【】「」《》（）]+/gi) || [];
+  const url = candidates.map((candidate) => externalUrl(candidate.replace(/[)\]},;.!?]+$/, ""))).find(Boolean) || "";
+  const codeText = String(match.replayCode || "").trim();
+  const labelledCode = (codeText + "\n" + text).match(/(?:提取码|提取碼|访问码|访问碼|密码|密碼)\s*[:：=]?\s*([a-z0-9]{4,8})(?![a-z0-9])/i)?.[1];
+  const code = /^[a-z0-9]{4,8}$/i.test(codeText) ? codeText : labelledCode || "";
+  return { replayUrl: url, replayCode: code };
+}
+
+export function normalizeReplay(match) {
+  const replay = replayDetails(match);
+  if (String(match.replayUrl || "").trim() && !replay.replayUrl)
+    throw new Error("未识别到回放网址，请粘贴包含 http:// 或 https:// 链接的网盘分享内容。");
+  return { ...match, ...replay };
+}

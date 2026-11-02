@@ -21,7 +21,32 @@ const {
   applyClubRefresh,
   externalUrl,
   publicImageUrl,
+  replayDetails,
+  normalizeReplay,
 } = await import(dataURL);
+
+const quarkShare = '我用夸克网盘给你分享了「10.31 江特队内赛.MP4」，点击链接或复制整段内容，打开「夸克网盘APP」即可获取。 /~79433c13Is~:/ 链接：https://pan.quark.cn/s/ad2f8920d8d7';
+test("existing Quark share text becomes a replay without modifying stored match data", () => {
+  const match = { id: 1, replayUrl: quarkShare, replayCode: quarkShare, note: quarkShare };
+  assert.deepEqual(replayDetails(match), { replayUrl: 'https://pan.quark.cn/s/ad2f8920d8d7', replayCode: '' });
+  assert.equal(match.replayUrl, quarkShare);
+  assert.equal(normalizeReplay(match).note, quarkShare);
+  assert.equal([match].map(replayDetails).filter((m) => m.replayUrl).length, 1);
+});
+test("replay sharing supports URLs, labelled codes, punctuation and explicit code override", () => {
+  assert.deepEqual(replayDetails({ replayUrl: '链接：https://pan.baidu.com/s/test?pwd=aB12。 提取码：aB12' }), { replayUrl: 'https://pan.baidu.com/s/test?pwd=aB12', replayCode: 'aB12' });
+  assert.equal(replayDetails({ replayUrl: '(https://pan.quark.cn/s/test)', replayCode: 'Xy99' }).replayCode, 'Xy99');
+  assert.equal(replayDetails({ replayUrl: 'https://pan.quark.cn/s/test', replayCode: '提取码：1234' }).replayCode, '1234');
+  assert.equal(replayDetails({ replayUrl: 'https://pan.quark.cn/s/test 提取码：1234', replayCode: 'abcd' }).replayCode, 'abcd');
+  assert.equal(replayDetails({ replayUrl: 'https://pan.quark.cn/s/test', replayCode: quarkShare }).replayCode, '');
+});
+test("invalid replay submission fails visibly while empty replay stays optional", () => {
+  for (const replayUrl of ['javascript:alert(1)', '没有链接的文案', 'data:text/html,test']) {
+    assert.equal(replayDetails({ replayUrl }).replayUrl, '');
+    assert.throws(() => normalizeReplay({ replayUrl }), /未识别到回放网址/);
+  }
+  assert.deepEqual(normalizeReplay({ id: 1 }), { id: 1, replayUrl: '', replayCode: '' });
+});
 test('uploaded original cards use deployed site copies',()=>{assert.equal(playerCard({name:'测试队员',cardImage:'https://example.supabase.co/storage/v1/object/public/player-photos/cards/jiangte-refresh-20261029/card.jpg'}),'/card.jpg')});
 test('new replacement cards and photos use same-origin image reads in production',()=>{globalThis.window={location:{protocol:'https:'}};try{const url='https://example.supabase.co/storage/v1/object/public/player-photos/cards/new-card.webp';assert.equal(playerCard({name:'测试队员',cardImage:url}),'/api/club-image?path=cards%2Fnew-card.webp');assert.equal(publicImageUrl('/assets/club/logo.png'),'/assets/club/logo.png');assert.equal(publicImageUrl('https://other.example/image.jpg'),'https://other.example/image.jpg')}finally{delete globalThis.window}});
 const stateSource = (

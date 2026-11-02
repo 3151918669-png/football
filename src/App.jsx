@@ -16,6 +16,7 @@ import {
   validatePayload,
   payloadSignature,
   clubLogo,
+  normalizeReplay,
 } from "./clubData";
 import Navbar from "../components/Navbar";
 import HomeShowcasePage from "../components/HomeShowcasePage";
@@ -1530,7 +1531,7 @@ function App() {
         return false;
       }
 
-      const newMatch = {
+      const newMatch = normalizeReplay({
         id: Date.now(),
         date: teamMatchForm.date,
         time: teamMatchForm.time || "",
@@ -1562,7 +1563,7 @@ function App() {
         registrations: {},
         squad: normalizeMatchSquad(),
         events: [],
-      };
+      });
 
       setTeamMatches((old) => [...old, newMatch]);
       setSelectedTeamMatchId(newMatch.id);
@@ -2423,6 +2424,7 @@ function App() {
                   clubInfo={clubInfo}
                   players={players}
                   teamMatches={filteredTeamMatches}
+                  error={pageError}
                   nextMatch={nextMatch}
                   teamMatchForm={teamMatchForm}
                   setTeamMatchForm={setTeamMatchForm}
@@ -2436,7 +2438,13 @@ function App() {
                   setSelectedName={setSelectedName}
                   setView={setView}
                   onUpdateMatch={(edited) => {
-                    if (!requireAdmin()) return;
+                    if (!requireAdmin()) return false;
+                    try {
+                      edited = normalizeReplay(edited);
+                    } catch (error) {
+                      setPageError(error.message);
+                      return false;
+                    }
                     const scores = {
                       ourScore: Math.max(0, Number(edited.ourScore) || 0),
                       opponentScore: Math.max(
@@ -2476,6 +2484,8 @@ function App() {
                       },
                       true,
                     );
+                    setPageError("");
+                    return true;
                   }}
                   onSetRegistration={setMatchRegistration}
                   onSetSquadRole={setMatchSquadRole}

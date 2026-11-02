@@ -168,6 +168,7 @@ function TeamMatchesPage({
           {editing && (
             <section className="match-edit-dialog">
               <h3>编辑比赛资料</h3>
+              {error && <p className="error-message" role="alert">{error}</p>}
               <div className="form-grid">
                 {[
                   ["date", "日期"],
@@ -203,6 +204,7 @@ function TeamMatchesPage({
                   </label>
                 ))}
               </div>
+              <p>回放链接支持直接粘贴整段网盘分享文案，保存时自动提取网址和提取码。</p>
               <label>
                 比赛备注
                 <textarea
@@ -215,8 +217,7 @@ function TeamMatchesPage({
               <button
                 className="primary-btn"
                 onClick={() => {
-                  onUpdateMatch(editing);
-                  setEditing(null);
+                  if (onUpdateMatch(editing) !== false) setEditing(null);
                 }}
               >
                 保存修改
@@ -396,7 +397,7 @@ function TeamMatchesPage({
                   />
                   <input
                     aria-label="新比赛网盘回放链接"
-                    placeholder="网盘回放链接（可选）"
+                    placeholder="网盘回放链接或整段分享文案（可选）"
                     value={teamMatchForm.replayUrl || ""}
                     onChange={(e) => updateForm("replayUrl", e.target.value)}
                   />
@@ -406,6 +407,7 @@ function TeamMatchesPage({
                     value={teamMatchForm.replayCode || ""}
                     onChange={(e) => updateForm("replayCode", e.target.value)}
                   />
+                  <p>可粘贴整段分享文案，网址和提取码会自动识别。</p>
                   <textarea
                     placeholder="比赛备注"
                     value={teamMatchForm.note}

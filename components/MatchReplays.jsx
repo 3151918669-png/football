@@ -1,7 +1,7 @@
 import React from "react";
-import { externalUrl } from "../src/clubData";
+import { replayDetails } from "../src/clubData";
 export default function MatchReplays({ matches, isAdmin, onManage }) {
-  const available = matches.filter((m) => externalUrl(m.replayUrl));
+  const available = matches.map((m) => ({ ...m, ...replayDetails(m) })).filter((m) => m.replayUrl);
   return (
     <section className="panel replay-section">
       <div className="section-head-row">
@@ -28,7 +28,7 @@ export default function MatchReplays({ matches, isAdmin, onManage }) {
               )}
               <a
                 className="club-btn"
-                href={externalUrl(m.replayUrl)}
+                href={m.replayUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
